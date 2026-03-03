@@ -1,1 +1,0 @@
-evdejewvfece class Text:
