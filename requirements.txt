@@ -4,6 +4,8 @@ dj-database-url==1.0.0
 Django==6.0.2
 django-filter==25.2
 django-redis==6.0.0
+django-stubs==5.2.9
+django-stubs-ext==5.2.9
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.29.0
@@ -11,6 +13,10 @@ gunicorn==20.1.0
 inflection==0.5.1
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
+librt==0.8.1
+mypy==1.19.1
+mypy_extensions==1.1.0
+pathspec==1.0.4
 psycopg2-binary==2.9.11
 PyJWT==2.11.0
 python-decouple==3.8
@@ -21,6 +27,7 @@ referencing==0.37.0
 rpds-py==0.30.0
 setuptools==82.0.0
 sqlparse==0.5.5
+types-PyYAML==6.0.12.20250915
 typing_extensions==4.15.0
 uritemplate==4.2.0
 whitenoise==6.4.0
