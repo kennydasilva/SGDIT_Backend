@@ -1,0 +1,1 @@
+from .role_permissions import IsSuperAdmin, IsAdmin, IsCidadao, IsPT
