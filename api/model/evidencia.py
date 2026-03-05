@@ -1,22 +1,25 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
+from .denuncia import Denuncia
 
-class Utilizador (AbstractBaseUser):
+class Evidencia (AbstractBaseUser):
 
-    class Role(models.TextChoices):
-        SUPER_ADMIN="SUPER_ADMIN", "Super Admin"
-        Admin="ADMIN", "Administrador"
-        PT="PT", "PoliciaTransito"
-        CIDADAO="CIDADAO", "Cidadao"
+    denucia=models.OneToOneField(
+        Denuncia,
+        on_delete=models.CASCADE,
+        related_name='evidencia'
+    )
 
-    
-    nome=models.CharField(max_length=150)
-    email=models.EmailField(unique=True)
-    role=models.CharField(max_length=20, choices=Role.choices)
+    tipo=models.CharField(max_length=50)
 
+    caminho_ficheiro=models.FileField(
+        upload_to="evidencias/"
+    )
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
+    data_captura=models.DateTimeField()
 
     def __str__(self):
-        return self.email
+        return f"Evidencia {self.id}"
+    
+
+   

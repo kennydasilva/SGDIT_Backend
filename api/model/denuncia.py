@@ -5,20 +5,19 @@ from .user import Cidadao, PT
 class Denuncia(models.Model):
 
     class Estado(models.TextChoices):
-        Pendente="PENDENTE", "Pendente"
-        Validada="VALIDADA", "Validada"
-        Rejeitada="REJEITADA", "Rejeitada"
-        Aprovada="APROVADA", "Aprovada"
-        Arquivada="ARQUIVADA", "Arquivada"
+        PENDENTE = "PENDENTE", "Pendente"
+        VALIDADA = "VALIDADA", "Validada"
+        REJEITADA = "REJEITADA", "Rejeitada"
+        APROVADA = "APROVADA", "Aprovada"
+        ARQUIVADA = "ARQUIVADA", "Arquivada"
 
-
-    cidadao=models.ForeignKey(
+    cidadao = models.ForeignKey(
         Cidadao,
         on_delete=models.CASCADE,
         related_name='denuncias'
     )
 
-    pt=models.ForeignKey(
+    pt = models.ForeignKey(
         PT,
         on_delete=models.SET_NULL,
         null=True,
@@ -26,15 +25,15 @@ class Denuncia(models.Model):
         related_name='denuncias'
     )
 
-    data_registo=models.DateTimeField(auto_now_add=True)
+    data_registo = models.DateTimeField(auto_now_add=True)
 
-    estado=models.CharField(
+    estado = models.CharField(
         max_length=20,
         choices=Estado.choices,
-        default=Estado.Pendente
+        default=Estado.PENDENTE
     )
 
-    localizacao=models.CharField(max_length=255)
+    localizacao = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"Denucia {self.id}"
+        return f"Denuncia {self.id}"

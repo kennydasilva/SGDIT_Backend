@@ -1,0 +1,26 @@
+from django.db import models
+from .denuncia import Denuncia
+from .infracao import TipoInfracao
+
+
+class ResultadoAnalise(models.Model):
+
+    denuncia = models.OneToOneField(
+        Denuncia,
+        on_delete=models.CASCADE,
+        related_name='resultado_analise'
+    )
+
+    tipo_infracao = models.ForeignKey(
+        TipoInfracao,
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+
+    confianca = models.FloatField()
+    data_analise = models.DateTimeField(auto_now_add=True)
+
+    infracao_detectada = models.BooleanField()
+
+    def __str__(self):
+        return f"Resultado Analise {self.id}"
