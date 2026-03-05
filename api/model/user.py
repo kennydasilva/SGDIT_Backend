@@ -49,3 +49,17 @@ class PT(models.Model):
 
     def __str__(self):
         return f"Agente {self.numero_agente}"
+    
+
+class Admin(models.Model):
+
+    utilizador=models.OneToOneField(
+        Utilizador,
+        on_delete=models.CASCADE,
+        related_name='admin'
+    )
+
+    posto=models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"Admin {self.utilizador.nome}"
