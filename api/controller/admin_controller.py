@@ -5,12 +5,17 @@ from api.permissions.role_permissions import IsSuperAdmin
 from api.service.admin_service import AdminService
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from api.serializers.user_serializer import CriarAdminSerializer, AdminResponseSerializer
 
 class AdminController(APIView):
     
     permission_classes=[IsSuperAdmin]
 
-    @swagger_auto_schema(operation_description="Listar administradores")
+    @swagger_auto_schema(
+            operation_description="Listar administradores",
+            responses={200: AdminResponseSerializer(many=True)}
+
+    )
     def get(self, request):
 
         admins=AdminService.listar_admins()
@@ -28,7 +33,9 @@ class AdminController(APIView):
         return Response(data)
     
     @swagger_auto_schema(
-        operation_description="Criar administrador"
+        operation_description="Criar administrador",
+        request_body=CriarAdminSerializer,
+        responses={201: AdminResponseSerializer}
     )
     def post(self, request):
 
@@ -50,13 +57,22 @@ class AdminController(APIView):
         )
     
     @swagger_auto_schema(
-        operation_description="Actualizar detalhes de um administrador"
+        operation_description="Actualizar detalhes de um administrador",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "admin_id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "nome": openapi.Schema(type=openapi.TYPE_STRING),
+                "posto": openapi.Schema(type=openapi.TYPE_STRING),
+            }
+        ),
+        responses={200: "Admin actualizado"}
     )
-    def put(self, request, admin_id):
+    def put(self, request):
 
         nome = request.data.get("nome")
         posto=request.data.get("posto")
-
+        admin_id=request.data.get("admin_id")
         admin=AdminService.actualizar_admin(
             admin_id,
             nome,
@@ -68,10 +84,18 @@ class AdminController(APIView):
         )
 
     @swagger_auto_schema(
-        operation_description="Apagar um administrador"
+        operation_description="Apagar um administrador",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "admin_id": openapi.Schema(type=openapi.TYPE_INTEGER)
+            }
+        ),
+        responses={204: "Admin apagado"}
     )
-    def delete(self, request, admin_id):
+    def delete(self, request):
 
+        admin_id=request.data.get("admin_id")
         AdminService.apagar_admin(admin_id)
 
         return Response(

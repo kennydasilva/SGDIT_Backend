@@ -1,20 +1,20 @@
 from django.urls import path
 
-from api.controllers.auth_controller import LoginController
-from api.controllers.cidadao_controller import RegistrarCidadaoController
-from api.controllers.admin_controller import AdminController
+from api.controller.auth_controller import LoginController
+from api.controller.cidadao_controller import RegistarCidadaoController
+from api.controller.admin_controller import AdminController
 
 
 urlpatterns = [
 
     path(
-        "auth/login/",
+        "login/",
         LoginController.as_view()
     ),
 
     path(
         "cidadaos/registrar/",
-        RegistrarCidadaoController.as_view()
+        RegistarCidadaoController.as_view()
     ),
 
     path(

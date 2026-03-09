@@ -16,7 +16,7 @@ class RegistarCidadaoController(APIView):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                "nome": open.Schema(type=openapi.TYPE_STRING),
+                "nome": openapi.Schema(type=openapi.TYPE_STRING),
                 "email": openapi.Schema(type=openapi.TYPE_STRING),
                 "password": openapi.Schema(type=openapi.TYPE_STRING),
             }

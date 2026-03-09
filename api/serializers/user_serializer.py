@@ -39,3 +39,17 @@ class PTSerializer(serializers.ModelSerializer):
             "localizacao"
         ]
 
+
+class CriarAdminSerializer(serializers.Serializer):
+
+    nome = serializers.CharField()
+    email = serializers.EmailField()
+    password = serializers.CharField()
+    posto = serializers.CharField()
+
+class AdminResponseSerializer(serializers.Serializer):
+
+    id = serializers.IntegerField()
+    nome = serializers.CharField()
+    email = serializers.EmailField()
+    posto = serializers.CharField()
