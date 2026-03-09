@@ -1,4 +1,4 @@
-from api.model.user import Utilizador,PT
+from api.model.user import Admin, Utilizador,PT
 #@kenny dasilva
 #Servico de gestao de policias de transito (PTs)
 #Responsabilidades: Ser
@@ -10,7 +10,7 @@ from api.model.user import Utilizador,PT
 class PTService:
 
     @staticmethod
-    def criar_pt(nome, email, password, numero_agente, localizacao):
+    def criar_pt(nome, email, password, numero_agente, localizacao, admin_id):
 
         utilizador =Utilizador.objects.create_user(
             username=email,
@@ -20,10 +20,14 @@ class PTService:
             role="PT"
         )
 
+        admin=Admin.objects.get(id=admin_id)
+
         pt= PT.objects.create(
             utilizador=utilizador,
             numero_agente=numero_agente,
-            localizacao=localizacao
+            localizacao=localizacao,
+            admin=admin,
+            admin_id=admin_id
         )
 
         return pt

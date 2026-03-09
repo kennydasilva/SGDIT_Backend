@@ -33,19 +33,7 @@ class Cidadao(models.Model):
     def __str__(self):
         return self.utilizador.nome
     
-class PT(models.Model):
 
-    utilizador = models.OneToOneField(
-        Utilizador,
-        on_delete=models.CASCADE,
-        related_name="pt"
-    )
-
-    numero_agente = models.CharField(max_length=50)
-    localizacao = models.CharField(max_length=255)
-
-    def __str__(self):
-        return f"Agente {self.numero_agente}"
     
 class Admin(models.Model):
 
@@ -59,3 +47,28 @@ class Admin(models.Model):
 
     def __str__(self):
         return self.utilizador.nome
+    
+
+class PT(models.Model):
+
+    utilizador = models.OneToOneField(
+        Utilizador,
+        on_delete=models.CASCADE,
+        related_name="pt"
+    )
+
+    admin=models.ForeignKey(
+        Admin,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pts"
+    )
+
+    admin_id=models.IntegerField(null=True, blank=True)
+
+    numero_agente = models.CharField(max_length=50)
+    localizacao = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"Agente {self.numero_agente}"

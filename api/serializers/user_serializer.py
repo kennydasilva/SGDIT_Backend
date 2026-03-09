@@ -37,6 +37,7 @@ class PTSerializer(serializers.ModelSerializer):
             "utilizador",
             "numero_agente"
             "localizacao"
+            "admin_id"
         ]
 
 
