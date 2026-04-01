@@ -26,8 +26,7 @@ class PTService:
             utilizador=utilizador,
             numero_agente=numero_agente,
             localizacao=localizacao,
-            admin=admin,
-            admin_id=admin_id
+            admin=admin
         )
 
         return pt
@@ -70,3 +69,8 @@ class PTService:
         pt.utilizador.delete()
 
         return True
+
+
+    @staticmethod
+    def listar_pts_por_admin(admin_id):
+        return PT.objects.select_related("utilizador").filter(admin_id=admin_id)

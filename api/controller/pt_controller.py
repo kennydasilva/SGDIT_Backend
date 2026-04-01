@@ -16,7 +16,7 @@ from api.service.admin_service import AdminService
 from api.service.pt_service import PTService
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from api.serializers.user_serializer import CriarAdminSerializer, AdminResponseSerializer, PTSerializer
+from api.serializers.user_serializer import PTCreateSerializer,PTResponseSerializer
 
 class PtController(APIView):
     
@@ -24,7 +24,7 @@ class PtController(APIView):
 
     @swagger_auto_schema(
             operation_description="Listar policiais de transito",
-            responses={200: PTSerializer(many=True)}
+            responses={200: PTResponseSerializer(many=True)}
 
     )
     def get(self, request):
@@ -47,8 +47,8 @@ class PtController(APIView):
     
     @swagger_auto_schema(
         operation_description="Criar policia de transito",
-        request_body=PTSerializer,
-        responses={201: PTSerializer}
+        request_body=PTCreateSerializer,
+        responses={201: PTResponseSerializer}
     )
     def post(self, request):
 
@@ -123,3 +123,75 @@ class PtController(APIView):
             {"message":"Policia de transito apagado"},
             status=status.HTTP_204_NO_CONTENT
         )
+    
+    @swagger_auto_schema(
+    operation_description="Listar PTs, obter por ID ou filtrar por admin",
+    manual_parameters=[
+        openapi.Parameter(
+            "pt_id",
+            openapi.IN_QUERY,
+            description="ID do PT",
+            type=openapi.TYPE_INTEGER,
+            required=False
+        ),
+        openapi.Parameter(
+            "admin_id",
+            openapi.IN_QUERY,
+            description="ID do Admin que criou os PTs",
+            type=openapi.TYPE_INTEGER,
+            required=False
+        )
+    ],
+        responses={200: PTResponseSerializer(many=True)}
+    )
+
+    def get(self, request):
+
+        pt_id = request.query_params.get("pt_id")
+        admin_id = request.query_params.get("admin_id")
+
+        # Buscar PT por ID
+        if pt_id:
+            pt = PTService.obter_pt_por_id(pt_id)
+
+            if not pt:
+                return Response(
+                    {"error": "PT nao encontrado"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            data = {
+                "id": pt.id,
+                "nome": pt.utilizador.nome,
+                "email": pt.utilizador.email,
+                "numero_agente": pt.numero_agente,
+                "localizacao": pt.localizacao,
+                "admin_id": pt.admin_id
+            }
+
+            return Response(data)
+
+        # Buscar PTs por admin
+        if admin_id:
+            pts = PTService.listar_pts_por_admin(admin_id)
+
+        else:
+            # Listar todos
+            pts = PTService.listar_pts()
+
+        data = [
+            {
+                "id": p.id,
+                "nome": p.utilizador.nome,
+                "email": p.utilizador.email,
+                "numero_agente": p.numero_agente,
+                "localizacao": p.localizacao,
+                "admin_id": p.admin_id
+            }
+            for p in pts
+        ]
+
+        return Response(data)
+
+
+    

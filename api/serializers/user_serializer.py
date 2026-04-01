@@ -28,18 +28,36 @@ class CidadaoSerializer(serializers.ModelSerializer):
 
 class PTSerializer(serializers.ModelSerializer):
 
-    Utilizador=serializers.StringRelatedField()
+    utilizador=serializers.StringRelatedField()
 
     class Meta:
         model= PT
         fields=[
             "id",
             "utilizador",
-            "numero_agente"
-            "localizacao"
+            "numero_agente",
+            "localizacao",
             "admin_id"
         ]
 
+class PTCreateSerializer(serializers.Serializer):
+
+    nome = serializers.CharField()
+    email = serializers.EmailField()
+    password = serializers.CharField()
+    numero_agente = serializers.CharField()
+    localizacao = serializers.CharField()
+    admin_id = serializers.IntegerField()
+
+
+class PTResponseSerializer(serializers.Serializer):
+
+    id = serializers.IntegerField()
+    nome = serializers.CharField()
+    email = serializers.EmailField()
+    numero_agente = serializers.CharField()
+    localizacao = serializers.CharField()
+    admin_id = serializers.IntegerField()
 
 class CriarAdminSerializer(serializers.Serializer):
 

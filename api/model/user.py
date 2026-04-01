@@ -65,8 +65,6 @@ class PT(models.Model):
         related_name="pts"
     )
 
-    admin_id=models.IntegerField(null=True, blank=True)
-
     numero_agente = models.CharField(max_length=50)
     localizacao = models.CharField(max_length=255)
 
