@@ -17,6 +17,12 @@ class ResultadoAnalise(models.Model):
         null=True,
     )
 
+    caminho_ficheiro_processado=models.FileField(
+        upload_to="videos_processados/"
+    )
+
+    
+
     confianca = models.FloatField()
     data_analise = models.DateTimeField(auto_now_add=True)
 

@@ -10,7 +10,7 @@ from api.model.user import Admin, Utilizador,PT
 class PTService:
 
     @staticmethod
-    def criar_pt(nome, email, password, numero_agente, localizacao, admin_id):
+    def criar_pt(nome, email, password, numero_agente, localizacao, numero_utilizador_admin):
 
         utilizador =Utilizador.objects.create_user(
             username=email,
@@ -20,7 +20,16 @@ class PTService:
             role="PT"
         )
 
-        admin=Admin.objects.get(id=admin_id)
+        admin=None
+        try:
+            admin = Admin.objects.get(utilizador_id=numero_utilizador_admin)
+        except Admin.DoesNotExist:
+           
+            utilizador.delete()
+            raise ValueError(
+                f"Nenhum Admin encontrado para o utilizador_id {numero_utilizador_admin}"
+            )
+
 
         pt= PT.objects.create(
             utilizador=utilizador,
@@ -72,5 +81,16 @@ class PTService:
 
 
     @staticmethod
-    def listar_pts_por_admin(admin_id):
-        return PT.objects.select_related("utilizador").filter(admin_id=admin_id)
+    def listar_pts_por_admin(utilizador_id):
+        admin=None
+
+        try:
+            admin = Admin.objects.get(utilizador_id=utilizador_id)
+            
+        except Admin.DoesNotExist:
+            raise ValueError(
+                f"Nenhum Admin encontrado para o utilizador_id {utilizador_id}"
+            )
+        
+        return PT.objects.select_related("utilizador").filter(admin_id=admin.id)
+    

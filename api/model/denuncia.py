@@ -26,6 +26,7 @@ class Denuncia(models.Model):
     )
 
     data_registo = models.DateTimeField(auto_now_add=True)
+    mm = models.atricula = models.CharField(max_length=255)
 
     estado = models.CharField(
         max_length=20,
