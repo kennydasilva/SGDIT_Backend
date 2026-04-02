@@ -1,6 +1,6 @@
 from django.db import models
 from .denuncia import Denuncia
-from .infracao import TipoInfracao
+from .analise_pt import TipoInfracao
 
 
 class ResultadoAnalise(models.Model):
@@ -11,17 +11,13 @@ class ResultadoAnalise(models.Model):
         related_name='resultado_analise'
     )
 
-    tipo_infracao = models.ForeignKey(
-        TipoInfracao,
-        on_delete=models.SET_NULL,
-        null=True,
-    )
 
     caminho_ficheiro_processado=models.FileField(
         upload_to="videos_processados/"
     )
 
     descricao=models.CharField(max_length=255)
+    codigo_legal=models.CharField(max_length=50)
 
     confianca = models.FloatField()
     data_analise = models.DateTimeField(auto_now_add=True)

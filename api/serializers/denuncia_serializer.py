@@ -3,30 +3,30 @@ from api.models import Denuncia
 from .analise_serializer import ResultadoAnaliseSerializer
 from .evidencia_serializer import EvidenciaSerializer
 
-
-class DenunciaSerializer(serializers.ModelSerializer):
+class DenunciaCreateSerializer(serializers.Serializer):
 
     resultado_analise = ResultadoAnaliseSerializer(read_only=True)
 
     evidencia = EvidenciaSerializer(read_only=True)
 
-    class Meta:
-        model = Denuncia
-        fields = [
-            "id",
-            "cidadao",
-            "pt",
-            "data_registo",
-            "estado",
-            "localizacao",
-            "resultado_analise",
-            "evidencia"
-        ]
+    cidadao_id = serializers.IntegerField()
+    pt_id = serializers.IntegerField(required=False, allow_null=True)
+    matricula = serializers.CharField(max_length=255)
+    descricao = serializers.CharField(max_length=255)
+    codigo_legal = serializers.CharField(max_length=50)
+    tipo_infracao = serializers.ChoiceField(choices=Denuncia.tipoInfracao.choices)
+    localizacao = serializers.CharField(max_length=255)
 
-class CriarDenunciaSerializer(serializers.ModelSerializer):
 
-    class Meta:
-        model = Denuncia
-        fields = [
-            "localizacao"
-        ]
+class DenunciaResponseSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    cidadao_id = serializers.IntegerField()
+    pt_id = serializers.IntegerField(allow_null=True)
+    matricula = serializers.CharField()
+    estado = serializers.CharField()
+    descricao = serializers.CharField()
+    descricao_pt = serializers.CharField(allow_null=True)
+    codigo_legal = serializers.CharField()
+    tipo_infracao = serializers.CharField()
+    localizacao = serializers.CharField()
+    data_registo = serializers.DateTimeField()

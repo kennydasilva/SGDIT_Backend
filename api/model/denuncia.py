@@ -35,6 +35,7 @@ class Denuncia(models.Model):
     )
 
     descricao=models.CharField(max_length=255)
+    descricao_pt=models.CharField(max_length=255)
     codigo_legal=models.CharField(max_length=50)
 
     class tipoInfracao(models.TextChoices):
