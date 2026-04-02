@@ -1,7 +1,8 @@
 from django.db import models
 from .denuncia import Denuncia
 
-
+def upload_evidencia_path(instance, filename):
+        return f"denuncias/{instance.denuncia.id}/evidencias/{filename}"
 class Evidencia(models.Model):
 
     denuncia = models.OneToOneField(
@@ -21,5 +22,4 @@ class Evidencia(models.Model):
     
 
 
-    def upload_evidencia_path(instance, filename):
-        return f"denuncias/{instance.denuncia.id}/evidencias/{filename}"
+    
