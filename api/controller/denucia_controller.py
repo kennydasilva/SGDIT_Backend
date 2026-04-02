@@ -13,6 +13,7 @@ from api.serializers.denuncia_serializer import (
 from api.Analise.Contramao import main_contramao
 from api.Analise.parado import  main_parado
 from api.Analise.velocidade import main_velocidade
+from api.evidencia import Evidencia 
 
 
 class DenunciaViewSet(ViewSet):
@@ -43,6 +44,9 @@ class DenunciaViewSet(ViewSet):
 
         return Response(data)
 
+
+
+
     @swagger_auto_schema(
         operation_description="Obter denuncia por ID",
         responses={200: DenunciaResponseSerializer}
@@ -72,6 +76,9 @@ class DenunciaViewSet(ViewSet):
 
         return Response(data)
 
+
+
+
     @swagger_auto_schema(
         operation_description="Criar denuncia",
         request_body=DenunciaCreateSerializer
@@ -86,22 +93,42 @@ class DenunciaViewSet(ViewSet):
             request.data.get("codigo_legal"),
             request.data.get("tipo_infracao"),
             request.data.get("localizacao"),
+            request.data.get("sentido_direccao"),
         )
 
+        try:
+            ficheiro = request.FILES.get("caminho_ficheiro")
+            if not ficheiro:
+                return Response(
+                    {"error": "Ficheiro de evidencia é obrigatório"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            evidencia = Evidencia.objects.create(
+                denuncia=denuncia,
+                caminho_ficheiro=ficheiro
+            )
 
-        if denuncia.tipo_infracao == "CONTRAMAO":
-            output_path = main_contramao(caminho_video)
+            if denuncia.tipo_infracao == "CONTRAMAO":
+                output_path = main_contramao(evidencia.caminho_ficheiro.path, denuncia)
 
-        elif denuncia.tipo_infracao == "PARADO":
-            output_path = main_parado(caminho_video)
+            elif denuncia.tipo_infracao == "PARADO":
+                output_path = main_parado(evidencia.caminho_ficheiro.path, denuncia)
 
-        elif denuncia.tipo_infracao == "VELOCIDADE":
-            output_path = main_velocidade(caminho_video)
+            elif denuncia.tipo_infracao == "VELOCIDADE":
+                output_path = main_velocidade(evidencia.caminho_ficheiro.path, denuncia)
 
-        return Response(
-            {"message": "Denuncia criada", "id": denuncia.id},
-            status=status.HTTP_201_CREATED
-        )
+            return Response(
+                {"message": "Denuncia criada", "id": denuncia.id},
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Erro ao salvar a denuncia: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+        
 
     @swagger_auto_schema(
         operation_description="Actualizar estado da denuncia"

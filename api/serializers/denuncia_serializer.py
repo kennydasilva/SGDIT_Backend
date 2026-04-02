@@ -16,6 +16,8 @@ class DenunciaCreateSerializer(serializers.Serializer):
     codigo_legal = serializers.CharField(max_length=50)
     tipo_infracao = serializers.ChoiceField(choices=Denuncia.tipoInfracao.choices)
     localizacao = serializers.CharField(max_length=255)
+    denuncia_id = serializers.IntegerField()
+    caminho_ficheiro = serializers.FileField()
 
 
 class DenunciaResponseSerializer(serializers.Serializer):
