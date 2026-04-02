@@ -1,24 +1,13 @@
 from rest_framework import serializers
-from api.models import Evidencia
 
 
-class EvidenciaSerializer(serializers.ModelSerializer):
+class EvidenciaCreateSerializer(serializers.Serializer):
+    denuncia_id = serializers.IntegerField()
+    caminho_ficheiro = serializers.FileField()
 
-    class Meta:
-        model = Evidencia
-        fields = [
-            "id",
-            "tipo",
-            "caminho_ficheiro",
-            "data_captura"
-        ]
 
-class UploadEvidenciaSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Evidencia
-        fields = [
-            "tipo",
-            "caminho_ficheiro",
-            "data_captura"
-        ]
+class EvidenciaResponseSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    denuncia_id = serializers.IntegerField()
+    caminho_ficheiro = serializers.CharField()
+    data_captura = serializers.DateTimeField()

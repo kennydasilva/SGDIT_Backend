@@ -4,6 +4,8 @@ from ultralytics import YOLO
 from collections import deque, defaultdict
 import math
 import time
+import os
+from datetime import datetime
 
 
 # ============================================================
@@ -16,11 +18,7 @@ class RastreadorVeiculos:
         self.veiculos = {}
         self.proximo_id = 0
         self.max_historico = max_historico
-
-        # Aumentado (antes 120)
         self.distancia_maxima = 250
-
-        # Novo: tolerância a perda de deteção
         self.frames_perdidos_max = 120
 
     def atualizar(self, detecoes, frame_num):
@@ -28,9 +26,7 @@ class RastreadorVeiculos:
         veiculos_ativos = []
         usados = set()
 
-        # =========================
-        # ASSOCIAR VEÍCULOS EXISTENTES
-        # =========================
+        # Associar veículos existentes
         for vid, dados in self.veiculos.items():
 
             ultimo = dados["ultimo_centro"]
@@ -63,9 +59,7 @@ class RastreadorVeiculos:
 
                 veiculos_ativos.append(vid)
 
-        # =========================
-        # CRIAR NOVOS VEÍCULOS
-        # =========================
+        # Criar novos veículos
         for i, det in enumerate(detecoes):
 
             if i not in usados:
@@ -82,9 +76,7 @@ class RastreadorVeiculos:
 
                 veiculos_ativos.append(vid)
 
-        # =========================
-        # REMOVER VEÍCULOS PERDIDOS
-        # =========================
+        # Remover veículos perdidos
         remover = []
 
         for vid, dados in self.veiculos.items():
@@ -105,10 +97,6 @@ class RastreadorVeiculos:
 # ============================================================
 
 class CalculadorVelocidade:
-    """
-    Calcula velocidade baseada na trajetória do veículo.
-    Converte deslocamento em pixels para km/h.
-    """
 
     def __init__(self):
         self.fps = 30
@@ -150,7 +138,7 @@ class CalculadorVelocidade:
 
 
 # ============================================================
-# DETETOR DE EXCESSO DE VELOCIDADE
+# DETETOR DE EXCESSO DE VELOCIDADE (COM ALERTAS)
 # ============================================================
 
 class DetetorExcessoVelocidade:
@@ -159,9 +147,10 @@ class DetetorExcessoVelocidade:
         self.limite = limite_kmh
         self.frames_confirmacao = 5
         self.historico = defaultdict(int)
-        self.infratores = set()
+        self.alertas_enviados = set()  # ← NOVO: guarda IDs que já alertaram
+        self.total_alertas = 0          # ← NOVO: contador total de alertas
 
-    def verificar(self, veiculo_id, velocidade):
+    def verificar(self, veiculo_id, velocidade, frame_num):
 
         if velocidade <= 0:
             return False
@@ -172,10 +161,22 @@ class DetetorExcessoVelocidade:
             self.historico[veiculo_id] = 0
 
         if self.historico[veiculo_id] >= self.frames_confirmacao:
-            self.infratores.add(veiculo_id)
-            return True
-
+            # Verificar se já não enviamos alerta para este veículo
+            if veiculo_id not in self.alertas_enviados:
+                self.alertas_enviados.add(veiculo_id)
+                self.total_alertas += 1
+                print(f"\n⚠️ ALERTA ENVIADO! Veículo {veiculo_id} em EXCESSO DE VELOCIDADE ({velocidade:.1f} km/h) no frame {frame_num}")
+                return True
+            else:
+                # Veículo já alertou, não repetir
+                return True  # Ainda está em excesso, mas sem novo alerta
         return False
+    
+    def get_total_alertas(self):
+        return self.total_alertas
+    
+    def get_alertas_enviados(self):
+        return self.alertas_enviados
 
 
 # ============================================================
@@ -190,23 +191,22 @@ class DetetorFaixaSimples:
 
 
 # ============================================================
-# PROCESSAMENTO DO VIDEO
+# PROCESSAMENTO DO VIDEO (COM CONTAGEM DE ALERTAS)
 # ============================================================
 
 def processar_video(caminho=None):
-
-    import os
-    from datetime import datetime
 
     modelo = YOLO("yolov8n.pt")
 
     if caminho:
         cap = cv2.VideoCapture(caminho)
+        print(f"📁 Vídeo: {caminho}")
     else:
         cap = cv2.VideoCapture(0)
+        print("📹 Webcam")
 
     if not cap.isOpened():
-        print("Erro ao abrir video")
+        print("❌ Erro ao abrir video")
         return
 
     # ===============================
@@ -215,7 +215,11 @@ def processar_video(caminho=None):
     os.makedirs("videos_processados", exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = f"videos_processados/velocidade_{timestamp}.mp4"
+    if caminho:
+        nome_base = os.path.splitext(os.path.basename(caminho))[0]
+        output_path = f"videos_processados/{nome_base}_velocidade_{timestamp}.mp4"
+    else:
+        output_path = f"videos_processados/webcam_velocidade_{timestamp}.mp4"
 
     largura = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     altura = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -227,7 +231,7 @@ def processar_video(caminho=None):
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     writer = cv2.VideoWriter(output_path, fourcc, fps_video, (largura, altura))
 
-    print(f" Video será salvo em: {output_path}")
+    print(f"💾 Vídeo será salvo em: {output_path}")
 
     # ===============================
     # SISTEMAS
@@ -241,6 +245,22 @@ def processar_video(caminho=None):
 
     frame_num = 0
     start = time.time()
+
+    # Perguntar limite de velocidade
+    print("\n🚦 DEFINA O LIMITE DE VELOCIDADE")
+    try:
+        limite_input = input("Limite em km/h (padrão 60): ").strip()
+        if limite_input:
+            detetor_excesso.limite = float(limite_input)
+            print(f"   Limite definido: {detetor_excesso.limite} km/h")
+    except:
+        pass
+
+    print("\n🎬 PROCESSANDO... Comandos:")
+    print("   'q' - sair e salvar vídeo")
+    print("   's' - guardar screenshot")
+    print("   'd' - mostrar estatísticas")
+    print("-"*50)
 
     while True:
 
@@ -259,7 +279,6 @@ def processar_video(caminho=None):
 
         for r in resultados[0]:
 
-            #  FILTRO DE CONFIANÇA
             conf = float(r.boxes.conf[0].cpu().numpy())
             if conf < 0.4:
                 continue
@@ -275,6 +294,9 @@ def processar_video(caminho=None):
 
         ativos = rastreador.atualizar(detecoes, frame_num)
 
+        # Contar veículos em excesso neste frame
+        excessos_frame = 0
+
         for vid in ativos:
 
             dados = rastreador.get(vid)
@@ -283,7 +305,10 @@ def processar_video(caminho=None):
 
             centros = list(dados["centros"])
             vel = velocidade.calcular(centros)
-            excesso = detetor_excesso.verificar(vid, vel)
+            excesso = detetor_excesso.verificar(vid, vel, frame_num)
+
+            if excesso:
+                excessos_frame += 1
 
             x1, y1, x2, y2 = dados["bbox"]
 
@@ -298,8 +323,8 @@ def processar_video(caminho=None):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
             if excesso:
-                cv2.putText(frame, "EXCESSO VELOCIDADE", (x1, y1 - 55),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                cv2.putText(frame, "⚠️ EXCESSO VELOCIDADE", (x1, y1 - 55),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
             # Trajetória
             for i in range(1, len(centros)):
@@ -307,40 +332,66 @@ def processar_video(caminho=None):
 
         fps = frame_num / (time.time() - start)
 
-        cv2.putText(frame, f"FPS {fps:.1f}", (20, 40),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        # ===============================
+        # INFORMAÇÕES NO ECRÃ (COM ALERTAS)
+        # ===============================
+        cv2.putText(frame, f"Frame: {frame_num}", (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        cv2.putText(frame, f"FPS: {fps:.1f}", (20, 70),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        cv2.putText(frame, f"Veiculos: {len(ativos)}", (20, 100),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
+        cv2.putText(frame, f"Excesso agora: {excessos_frame}", (20, 130),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        
+        # ← NOVO: Mostrar total de alertas enviados
+        cv2.putText(frame, f"Alertas enviados: {detetor_excesso.get_total_alertas()}", (20, 160),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 165, 0), 2)
+        
+        # Mostrar limite de velocidade
+        cv2.putText(frame, f"Limite: {detetor_excesso.limite} km/h", (frame.shape[1] - 200, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
 
-        #  GUARDAR FRAME
+        # Instruções
+        cv2.putText(frame, "q-sair | s-screenshot | d-stats", (20, frame.shape[0] - 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+        # GUARDAR FRAME
         writer.write(frame)
 
         cv2.imshow("Sistema de Velocidade", frame)
 
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
             break
+        elif key == ord('s'):
+            screenshot_path = f"videos_processados/screenshot_velocidade_{frame_num}.jpg"
+            cv2.imwrite(screenshot_path, frame)
+            print(f"💾 Screenshot: {screenshot_path}")
+        elif key == ord('d'):
+            print(f"\n📊 ESTATÍSTICAS:")
+            print(f"   Frames processados: {frame_num}")
+            print(f"   FPS médio: {fps:.1f}")
+            print(f"   Veículos únicos: {rastreador.proximo_id}")
+            print(f"   Veículos em excesso agora: {excessos_frame}")
+            print(f"   TOTAL DE ALERTAS ENVIADOS: {detetor_excesso.get_total_alertas()}")
+            print(f"   Veículos que cometeram infração: {len(detetor_excesso.get_alertas_enviados())}")
 
     cap.release()
     writer.release()
     cv2.destroyAllWindows()
 
-    print(" Processamento concluído")
+    print(f"\n Processamento concluído!")
     print(f" Video salvo em: {output_path}")
+    print(f" TOTAL DE ALERTAS DE EXCESSO DE VELOCIDADE: {detetor_excesso.get_total_alertas()}")
+    print(f"Veículos únicos: {rastreador.proximo_id}")
+
 
 # ============================================================
 # MAIN
 # ============================================================
 
 def main_velocidade(caminho=None):
+    processar_video(caminho)
 
 
-        processar_video(caminho)
-   
-
-
-# ============================================================
-# ASSINATURA
-# ============================================================
-# @module: vehicle_speed_system
-# @author: kenny
-# @method: trajectory_tracking_velocity
-# @feature: speed_limit_detection
-# @version: 2.0

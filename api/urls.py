@@ -5,7 +5,8 @@ from api.controller.auth_controller import LoginController
 from api.controller.cidadao_controller import RegistarCidadaoController
 from api.controller.admin_controller import AdminController
 from api.controller.pt_controller import PtViewSet
-
+from django.conf import settings
+from django.conf.urls.static import static
 router = DefaultRouter()
 router.register(r"pts", PtViewSet, basename="pts")
 
@@ -16,3 +17,4 @@ urlpatterns = [
 ]
 
 urlpatterns += router.urls
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

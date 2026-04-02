@@ -10,6 +10,10 @@ from api.serializers.denuncia_serializer import (
     DenunciaResponseSerializer
 )
 
+from api.Analise.Contramao import main_contramao
+from api.Analise.parado import  main_parado
+from api.Analise.velocidade import main_velocidade
+
 
 class DenunciaViewSet(ViewSet):
 
@@ -83,6 +87,16 @@ class DenunciaViewSet(ViewSet):
             request.data.get("tipo_infracao"),
             request.data.get("localizacao"),
         )
+
+
+        if denuncia.tipo_infracao == "CONTRAMAO":
+            output_path = main_contramao(caminho_video)
+
+        elif denuncia.tipo_infracao == "PARADO":
+            output_path = main_parado(caminho_video)
+
+        elif denuncia.tipo_infracao == "VELOCIDADE":
+            output_path = main_velocidade(caminho_video)
 
         return Response(
             {"message": "Denuncia criada", "id": denuncia.id},
