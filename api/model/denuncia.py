@@ -34,6 +34,14 @@ class Denuncia(models.Model):
         default=Estado.PENDENTE
     )
 
+    descricao=models.CharField(max_length=255)
+    codigo_legal=models.CharField(max_length=50)
+
+    class tipoInfracao(models.TextChoices):
+        CONTRAMAO = "CONTRAMAO", "contramao"
+        PARADO = "PARADO", "parado"
+        VELOCIDADE = "VELOCIDADE", "velocidade"
+
     localizacao = models.CharField(max_length=255)
 
     def __str__(self):

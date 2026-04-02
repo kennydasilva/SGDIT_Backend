@@ -21,7 +21,7 @@ class ResultadoAnalise(models.Model):
         upload_to="videos_processados/"
     )
 
-    
+    descricao=models.CharField(max_length=255)
 
     confianca = models.FloatField()
     data_analise = models.DateTimeField(auto_now_add=True)
