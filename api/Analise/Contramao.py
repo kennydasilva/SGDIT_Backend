@@ -6,6 +6,9 @@ import math
 import time
 from datetime import datetime
 import os
+from api.service.resultado_analise_service import ResultadoAnaliseService
+from api.model.analise import ResultadoAnalise
+from django.conf import settings
 
 # ============================================
 # PARTE 1: DETETOR DE CONTRAMÃO
@@ -318,18 +321,16 @@ class DetetorFaixas:
 # PARTE 4: PROCESSAMENTO PRINCIPAL COM SALVAMENTO DE VÍDEO
 # ============================================
 
-def processar_video_contramao(caminho_video=None, salvar_video=True):
+def processar_video_contramao(caminho_video, denuncia, salvar_video=True):
     """
     Processa vídeo detetando veículos em contramão e SALVA o vídeo processado
     """
-    print("\n" + "="*60)
-    print(" DETEÇÃO DE CONTRAMÃO COM SALVAMENTO DE VÍDEO")
-    print("="*60)
+   
     
-    # Carregar modelo
+    
     modelo = YOLO('yolov8n.pt')
     
-    # Abrir vídeo de entrada
+    
     if caminho_video:
         cap = cv2.VideoCapture(caminho_video)
         print(f" Vídeo de entrada: {caminho_video}")
@@ -341,7 +342,7 @@ def processar_video_contramao(caminho_video=None, salvar_video=True):
         print(" Erro ao abrir vídeo!")
         return
     
-    # Obter informações do vídeo
+    
     fps = cap.get(cv2.CAP_PROP_FPS)
     if fps <= 0:
         fps = 30
@@ -353,7 +354,7 @@ def processar_video_contramao(caminho_video=None, salvar_video=True):
     print(f" Resolução: {largura}x{altura}")
     
     # Criar diretório para saída
-    output_dir = "videos_processados"
+    output_dir = os.path.join(settings.MEDIA_ROOT, "videos_processados")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
@@ -376,17 +377,11 @@ def processar_video_contramao(caminho_video=None, salvar_video=True):
     faixas = DetetorFaixas()
     detetor_contramao = DetetorContramao(fps=fps)
     
-    # Perguntar sentido da via
-    print("\n" + "="*60)
-    print("  CONFIGURAÇÃO DO SENTIDO DA VIA")
-    print("="*60)
-    print("   1 - DIREITA → (veículos devem ir para a DIREITA)")
-    print("   2 - ESQUERDA ← (veículos devem ir para a ESQUERDA)")
-    print("-"*60)
     
-    sentido_opcao = input("   Opção (1 ou 2): ").strip()
     
-    if sentido_opcao == '1':
+    
+    
+    if denuncia.sentido_opcao == '1':
         detetor_contramao.definir_sentido_via('direita')
     else:
         detetor_contramao.definir_sentido_via('esquerda')
@@ -399,14 +394,7 @@ def processar_video_contramao(caminho_video=None, salvar_video=True):
     log_file = open(f"{output_dir}/contramao_log_{timestamp}.csv", "w")
     log_file.write("timestamp,frame,id,x,y,classe,direcao,em_contramao,tempo_infracao\n")
     
-    print("\n PROCESSANDO... Comandos:")
-    print("   'q' - sair e salvar vídeo")
-    print("   's' - guardar screenshot")
-    print("   'd' - mostrar estatísticas")
-    print("   'c' - mostrar veículos em contramão")
-    print("-"*50)
-    print(f" O vídeo está sendo salvo em: {output_path}")
-    print("-"*50)
+    
     
     while True:
         ret, frame = cap.read()
@@ -617,7 +605,11 @@ def processar_video_contramao(caminho_video=None, salvar_video=True):
         print(f" Vídeo processado: {output_path}")
     print(f" Log: {output_dir}/contramao_log_{timestamp}.csv")
     print(f" Veículos únicos: {rastreador.proximo_id}")
-    print(f"  Alertas de contramão: {len(detetor_contramao.alertas_enviados)}")
+    alertas=len(detetor_contramao.alertas_enviados)
+
+    analise = processar_video_contramao(path, denuncia, salvar_video=True)
+
+    return analise
 
 
 
@@ -627,8 +619,7 @@ def processar_video_contramao(caminho_video=None, salvar_video=True):
 # PARTE 6: FUNÇÃO PRINCIPAL
 # ============================================
 
-def main_contramao(caminho=None):
-    """
-    Função principal com menu
-    """
-    processar_video_contramao(caminho, salvar_video=True)
+def main_contramao(path,denuncia):
+    
+    analise = processar_video_contramao(path, denuncia, salvar_video=True)
+    return analise

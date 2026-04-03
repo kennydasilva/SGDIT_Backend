@@ -13,8 +13,22 @@ from api.serializers.denuncia_serializer import (
 from api.Analise.Contramao import main_contramao
 from api.Analise.parado import  main_parado
 from api.Analise.velocidade import main_velocidade
-from api.evidencia import Evidencia 
+from api.evidencia import Evidencia
+from api.service.evidencia_service import EvidenciaService 
+import threading
 
+
+def processar_analise_async(tipo, path, denuncia):
+        def run():
+            if tipo == "CONTRAMAO":
+                main_contramao(path,denuncia)
+            elif tipo == "PARADO":
+                main_parado(path,denuncia)
+            elif tipo == "VELOCIDADE":
+                main_velocidade(path,denuncia)
+
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
 
 class DenunciaViewSet(ViewSet):
 
@@ -78,6 +92,11 @@ class DenunciaViewSet(ViewSet):
 
 
 
+    
+
+  
+
+
 
     @swagger_auto_schema(
         operation_description="Criar denuncia",
@@ -85,45 +104,43 @@ class DenunciaViewSet(ViewSet):
     )
     def create(self, request):
 
-        denuncia = DenunciaService.criar_denuncia(
-            request.data.get("cidadao_id"),
-            request.data.get("pt_id"),
-            request.data.get("matricula"),
-            request.data.get("descricao"),
-            request.data.get("codigo_legal"),
-            request.data.get("tipo_infracao"),
-            request.data.get("localizacao"),
-            request.data.get("sentido_direccao"),
-        )
-
         try:
-            ficheiro = request.FILES.get("caminho_ficheiro")
-            if not ficheiro:
-                return Response(
-                    {"error": "Ficheiro de evidencia é obrigatório"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            evidencia = Evidencia.objects.create(
-                denuncia=denuncia,
-                caminho_ficheiro=ficheiro
+            
+            denuncia = DenunciaService.criar_denuncia(
+                request.data.get("cidadao_id"),
+                request.data.get("matricula"),
+                request.data.get("descricao"),
+                request.data.get("tipo_infracao"),
+                request.data.get("localizacao"),
+                request.data.get("sentido_direccao")
             )
 
-            if denuncia.tipo_infracao == "CONTRAMAO":
-                output_path = main_contramao(evidencia.caminho_ficheiro.path, denuncia)
+           
+            ficheiro = request.FILES.get("caminho_ficheiro")
+            if not ficheiro.name.endswith(('.mp4', '.avi', '.mov')):
+                return Response(
+                    {"error": "Formato de vídeo inválido"},
+                    status=400
+                )
 
-            elif denuncia.tipo_infracao == "PARADO":
-                output_path = main_parado(evidencia.caminho_ficheiro.path, denuncia)
+            
+            evidencia = EvidenciaService.criar_evidencia(denuncia, ficheiro)
 
-            elif denuncia.tipo_infracao == "VELOCIDADE":
-                output_path = main_velocidade(evidencia.caminho_ficheiro.path, denuncia)
+            
+            processar_analise_async(
+                denuncia.tipo_infracao,
+                evidencia.caminho_ficheiro.path,
+                denuncia
+            )
 
             return Response(
-                {"message": "Denuncia criada", "id": denuncia.id},
+                {"message": "Denuncia criada com sucesso", "id": denuncia.id},
                 status=status.HTTP_201_CREATED
             )
+
         except Exception as e:
             return Response(
-                {"error": f"Erro ao salvar a denuncia: {str(e)}"},
+                {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
