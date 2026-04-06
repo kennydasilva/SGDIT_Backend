@@ -13,10 +13,9 @@ from api.serializers.denuncia_serializer import (
 )
 
 from api.Analise.Contramao import main_contramao
-from api.Analise.parado import  main_parado
+from api.Analise.parado import main_parado
 from api.Analise.velocidade import main_velocidade
-from api.evidencia import Evidencia
-from api.service.evidencia_service import EvidenciaService 
+from api.service.evidencia_service import EvidenciaService
 import threading
 
 from api.tasks.analise_task import processar_analise_async

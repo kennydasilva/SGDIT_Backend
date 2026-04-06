@@ -1,13 +1,13 @@
 from rest_framework import serializers
 from api.models import Denuncia
 from .analise_serializer import ResultadoAnaliseSerializer
-from .evidencia_serializer import EvidenciaSerializer
+from .evidencia_serializer import EvidenciaResponseSerializer
 
 class DenunciaCreateSerializer(serializers.Serializer):
 
     resultado_analise = ResultadoAnaliseSerializer(read_only=True)
 
-    evidencia = EvidenciaSerializer(read_only=True)
+    evidencia = EvidenciaResponseSerializer(read_only=True)
 
     cidadao_id = serializers.IntegerField()
     pt_id = serializers.IntegerField(required=False, allow_null=True)

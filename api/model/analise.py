@@ -1,6 +1,6 @@
 from django.db import models
 from .denuncia import Denuncia
-from .analise_pt import TipoInfracao
+
 
 
 class ResultadoAnalise(models.Model):

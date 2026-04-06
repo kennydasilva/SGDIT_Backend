@@ -3,11 +3,6 @@ from api.model.analise import ResultadoAnalise
 from api.model.denuncia import Denuncia
 
 
-from api.Analise.Contramao import main_contramao
-from api.Analise.parado import  main_parado
-from api.Analise.velocidade import main_velocidade
-
-
 class ResultadoAnaliseService:
 
     @staticmethod

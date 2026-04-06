@@ -2,4 +2,3 @@ from .user_serializer import AdminResponseSerializer,CriarAdminSerializer, Cidad
 from .denuncia_serializer import *
 from .analise_serializer import *
 from .evidencia_serializer import *
-from .infracao_serializer import *
