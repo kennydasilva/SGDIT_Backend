@@ -321,7 +321,7 @@ class DetetorFaixas:
 # PARTE 4: PROCESSAMENTO PRINCIPAL COM SALVAMENTO DE VÍDEO
 # ============================================
 
-def processar_video_contramao(caminho_video, denuncia, salvar_video=True):
+def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_video=True):
     """
     Processa vídeo detetando veículos em contramão e SALVA o vídeo processado
     """
@@ -355,8 +355,8 @@ def processar_video_contramao(caminho_video, denuncia, salvar_video=True):
     
     # Criar diretório para saída
     output_dir = os.path.join(settings.MEDIA_ROOT, "videos_processados")
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    
+    os.makedirs(output_dir, exist_ok=True)
     
     # Nome do vídeo de saída
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -381,7 +381,7 @@ def processar_video_contramao(caminho_video, denuncia, salvar_video=True):
     
     
     
-    if denuncia.sentido_opcao == '1':
+    if sentido_direccao == 'direita':
         detetor_contramao.definir_sentido_via('direita')
     else:
         detetor_contramao.definir_sentido_via('esquerda')
@@ -417,28 +417,30 @@ def processar_video_contramao(caminho_video, denuncia, salvar_video=True):
         
         # Extrair deteções
         detecoes = []
-        for det in resultados[0]:
-            x1, y1, x2, y2 = det.boxes.xyxy[0].cpu().numpy().astype(int)
-            classe_id = int(det.boxes.cls[0].cpu().numpy())
-            confianca = float(det.boxes.conf[0].cpu().numpy())
-            
-            x1 = int(x1 * escala_x)
-            y1 = int(y1 * escala_y)
-            x2 = int(x2 * escala_x)
-            y2 = int(y2 * escala_y)
-            
-            centro_x = (x1 + x2) // 2
-            centro_y = (y1 + y2) // 2
-            
-            nome_classes = {2: 'carro', 3: 'moto', 5: 'autocarro', 7: 'camiao'}
-            classe = nome_classes.get(classe_id, 'desconhecido')
-            
-            detecoes.append({
-                'centro': (centro_x, centro_y),
-                'bbox': (x1, y1, x2, y2),
-                'classe': classe,
-                'confianca': confianca
-            })
+        if resultados and len(resultados) > 0:
+
+            for det in resultados[0]:
+                x1, y1, x2, y2 = det.boxes.xyxy[0].cpu().numpy().astype(int)
+                classe_id = int(det.boxes.cls[0].cpu().numpy())
+                confianca = float(det.boxes.conf[0].cpu().numpy())
+                
+                x1 = int(x1 * escala_x)
+                y1 = int(y1 * escala_y)
+                x2 = int(x2 * escala_x)
+                y2 = int(y2 * escala_y)
+                
+                centro_x = (x1 + x2) // 2
+                centro_y = (y1 + y2) // 2
+                
+                nome_classes = {2: 'carro', 3: 'moto', 5: 'autocarro', 7: 'camiao'}
+                classe = nome_classes.get(classe_id, 'desconhecido')
+                
+                detecoes.append({
+                    'centro': (centro_x, centro_y),
+                    'bbox': (x1, y1, x2, y2),
+                    'classe': classe,
+                    'confianca': confianca
+                })
         
         # Atualizar tracking
         veiculos_ativos = rastreador.atualizar(detecoes, frame_count)
@@ -562,7 +564,7 @@ def processar_video_contramao(caminho_video, denuncia, salvar_video=True):
         cv2.imshow('Deteccao de Contramao - Modulo 7', frame_anotado)
         
         # SALVAR FRAME NO VÍDEO
-        if salvar_video:
+        if salvar_video and out is not None:
             out.write(frame_anotado)
         
         # Comandos
@@ -607,7 +609,7 @@ def processar_video_contramao(caminho_video, denuncia, salvar_video=True):
     print(f" Veículos únicos: {rastreador.proximo_id}")
     alertas=len(detetor_contramao.alertas_enviados)
 
-    analise = processar_video_contramao(path, denuncia, salvar_video=True)
+    analise = ResultadoAnaliseService.executar_analise(denuncia, output_path, alertas)
 
     return analise
 
@@ -619,7 +621,7 @@ def processar_video_contramao(caminho_video, denuncia, salvar_video=True):
 # PARTE 6: FUNÇÃO PRINCIPAL
 # ============================================
 
-def main_contramao(path,denuncia):
+def main_contramao(path,denuncia, sentido_direccao):
     
-    analise = processar_video_contramao(path, denuncia, salvar_video=True)
+    analise = processar_video_contramao(path, denuncia, sentido_direccao, salvar_video=True)
     return analise

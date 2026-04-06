@@ -5,6 +5,8 @@ from collections import defaultdict, deque
 import math
 import time
 from datetime import datetime
+from api.service.resultado_analise_service import ResultadoAnaliseService
+from api.model.analise import ResultadoAnalise
 
 # ============================================
 # PARTE 1: RASTREADOR COM DETEÇÃO DE PARADOS
@@ -251,12 +253,13 @@ class ZonasProibidas:
 # PARTE 3: PROCESSAMENTO PRINCIPAL
 # ============================================
 
-def processar_video_parados(caminho_video=None):
+def processar_video_parados(caminho_video,denuncia,salvar_video=True):
     """
     Processa vídeo detetando veículos parados
     """
     print("\n" + "="*60)
     print("  DETEÇÃO DE VEÍCULOS PARADOS")
+
     print("="*60)
     
     # Carregar modelo
@@ -568,7 +571,11 @@ def processar_video_parados(caminho_video=None):
     print(f" Log: veiculos_parados_log.csv")
     print(f" Total frames: {frame_count}")
     print(f" Veículos únicos: {rastreador.proximo_id}")
-    print(f"  Alertas: {len(alertas_enviados)}")
+    alertas=len(alertas_enviados)
+
+    analise = ResultadoAnaliseService.executar_analise(denuncia, output_path, alertas)
+
+    return analise
 
 
 
@@ -577,15 +584,13 @@ def processar_video_parados(caminho_video=None):
 # PARTE 5: FUNÇÃO PRINCIPAL
 # ============================================
 
-def main(caminho=None):
+def main_parado(path,denuncia):
     """
     Função principal com menu
     """
         
-    if caminho is None:
-        caminho = input("Caminho do vídeo: ").strip()
-        
-    processar_video_parados(caminho)
+    analise = processar_video_parados(path,denuncia, salvar_video=True)
+    return analise
         
         
         

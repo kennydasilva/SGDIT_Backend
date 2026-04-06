@@ -18,10 +18,10 @@ from api.service.evidencia_service import EvidenciaService
 import threading
 
 
-def processar_analise_async(tipo, path, denuncia):
+def processar_analise_async(tipo, path, denuncia, sentido_direccao):
         def run():
             if tipo == "CONTRAMAO":
-                main_contramao(path,denuncia)
+                main_contramao(path,denuncia,sentido_direccao)
             elif tipo == "PARADO":
                 main_parado(path,denuncia)
             elif tipo == "VELOCIDADE":
@@ -115,6 +115,8 @@ class DenunciaViewSet(ViewSet):
                 request.data.get("sentido_direccao")
             )
 
+            sentido_direccao = request.data.get("sentido_direccao")
+
            
             ficheiro = request.FILES.get("caminho_ficheiro")
             if not ficheiro.name.endswith(('.mp4', '.avi', '.mov')):
@@ -130,7 +132,8 @@ class DenunciaViewSet(ViewSet):
             processar_analise_async(
                 denuncia.tipo_infracao,
                 evidencia.caminho_ficheiro.path,
-                denuncia
+                denuncia,
+                sentido_direccao
             )
 
             return Response(

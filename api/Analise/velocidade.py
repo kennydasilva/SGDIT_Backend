@@ -6,6 +6,8 @@ import math
 import time
 import os
 from datetime import datetime
+from api.service.resultado_analise_service import ResultadoAnaliseService
+from api.model.analise import ResultadoAnalise
 
 
 # ============================================================
