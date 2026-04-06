@@ -1,9 +1,11 @@
+from celery import shared_task
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 
+from api.model.denuncia import Denuncia
 from api.service.denucia_service import DenunciaService
 from api.serializers.denuncia_serializer import (
     DenunciaCreateSerializer,
@@ -17,18 +19,7 @@ from api.evidencia import Evidencia
 from api.service.evidencia_service import EvidenciaService 
 import threading
 
-
-def processar_analise_async(tipo, path, denuncia, sentido_direccao):
-        def run():
-            if tipo == "CONTRAMAO":
-                main_contramao(path,denuncia,sentido_direccao)
-            elif tipo == "PARADO":
-                main_parado(path,denuncia)
-            elif tipo == "VELOCIDADE":
-                main_velocidade(path,denuncia)
-
-        thread = threading.Thread(target=run, daemon=True)
-        thread.start()
+from api.tasks.analise_task import processar_analise_async
 
 class DenunciaViewSet(ViewSet):
 
@@ -129,10 +120,10 @@ class DenunciaViewSet(ViewSet):
             evidencia = EvidenciaService.criar_evidencia(denuncia, ficheiro)
 
             
-            processar_analise_async(
+            processar_analise_async.delay(
                 denuncia.tipo_infracao,
                 evidencia.caminho_ficheiro.path,
-                denuncia,
+                denuncia.id,
                 sentido_direccao
             )
 

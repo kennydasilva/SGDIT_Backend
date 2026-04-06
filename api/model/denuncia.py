@@ -10,6 +10,7 @@ class Denuncia(models.Model):
         REJEITADA = "REJEITADA", "Rejeitada"
         APROVADA = "APROVADA", "Aprovada"
         ARQUIVADA = "ARQUIVADA", "Arquivada"
+       
 
     cidadao = models.ForeignKey(
         Cidadao,
@@ -26,7 +27,7 @@ class Denuncia(models.Model):
     )
 
     data_registo = models.DateTimeField(auto_now_add=True)
-    mm = models.atricula = models.CharField(max_length=255)
+    matricula = models.CharField(max_length=255)
 
     estado = models.CharField(
         max_length=20,

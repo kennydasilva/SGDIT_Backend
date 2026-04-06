@@ -36,3 +36,8 @@ class ResultadoAnaliseService:
             return ResultadoAnalise.objects.get(denuncia_id=denuncia_id)
         except ResultadoAnalise.DoesNotExist:
             return None
+
+
+
+
+

@@ -196,7 +196,7 @@ class DetetorFaixaSimples:
 # PROCESSAMENTO DO VIDEO (COM CONTAGEM DE ALERTAS)
 # ============================================================
 
-def processar_video(caminho=None):
+def processar_video(caminho, denuncia, salvar_video=True):
 
     modelo = YOLO("yolov8n.pt")
 
@@ -387,13 +387,21 @@ def processar_video(caminho=None):
     print(f" Video salvo em: {output_path}")
     print(f" TOTAL DE ALERTAS DE EXCESSO DE VELOCIDADE: {detetor_excesso.get_total_alertas()}")
     print(f"Veículos únicos: {rastreador.proximo_id}")
+    alertas=detetor_excesso.get_total_alertas()
+
+    analise = ResultadoAnaliseService.executar_analise(denuncia, output_path, alertas)
+
+    return analise
 
 
 # ============================================================
 # MAIN
 # ============================================================
 
-def main_velocidade(caminho=None):
-    processar_video(caminho)
+def main_velocidade(path,denuncia):
+    
+
+    analise = processar_video(path, denuncia, salvar_video=True)
+    return analise
 
 

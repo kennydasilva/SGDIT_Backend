@@ -7,6 +7,9 @@ import time
 from datetime import datetime
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.model.analise import ResultadoAnalise
+from django.conf import settings
+import os
+
 
 # ============================================
 # PARTE 1: RASTREADOR COM DETEÇÃO DE PARADOS
@@ -283,6 +286,20 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True):
         fps = 30
     
     print(f" FPS do vídeo: {fps:.1f}")
+
+
+    largura = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    altura = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    output_dir = os.path.join(settings.MEDIA_ROOT, "videos_processados")
+    os.makedirs(output_dir, exist_ok=True)
+
+    timestamp_nome = datetime.now().strftime('%Y%m%d_%H%M%S')
+    nome_base = os.path.splitext(os.path.basename(caminho_video))[0]
+    output_path = f"{output_dir}/{nome_base}_analise_parado_{timestamp_nome}.mp4"
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_path, fourcc, fps, (largura, altura))
     
     # Inicializar rastreador
     rastreador = RastreadorParados(max_historico=100, fps=fps)
@@ -595,4 +612,13 @@ def main_parado(path,denuncia):
         
         
       
+
+
+
+
+
+
+
+
+
 
