@@ -586,14 +586,12 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
     print(f" Veículos únicos: {rastreador.proximo_id}")
     alertas=len(detetor_contramao.alertas_enviados)
 
-    try:
-        analise = ResultadoAnaliseService.executar_analise(denuncia, output_path, alertas)
 
-        return analise
+    analise = ResultadoAnaliseService.executar_analise(denuncia, output_path, alertas)
+
+    return analise
     
-    except Exception as e:
-        print(f"Erro ao salvar resultado da análise: " ,str(e))
-        return None
+   
         
 
 

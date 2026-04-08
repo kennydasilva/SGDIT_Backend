@@ -22,7 +22,8 @@ class ResultadoAnaliseService:
                 "descricao": f"Analise automatica para {denuncia.tipo_infracao}",
                 "codigo_legal": denuncia.codigo_legal,
                 "confianca": 0.85,
-                "infracao_detectada": True
+                "infracao_detectada": True,
+                
             }
         )
 

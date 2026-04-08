@@ -20,7 +20,9 @@ import threading
 import traceback
 from rest_framework.parsers import MultiPartParser, FormParser
 
+from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.tasks.analise_task import processar_analise_async
+from api.helper.dataConvertion import formatar_data
 
 class DenunciaViewSet(ViewSet):
     parser_classes = [MultiPartParser, FormParser]
@@ -181,18 +183,51 @@ class DenunciaViewSet(ViewSet):
     def por_cidadao(self, request, cidadao_id=None):
 
         denuncias = DenunciaService.listar_por_cidadao(cidadao_id)
+        
 
-        data = [
-            {
+        
+        data = []
+
+        for d in denuncias:
+
+            resultadoAnalise = ResultadoAnaliseService.obter_por_denuncia(d.id)
+            evidencia = EvidenciaService.obter_evidencia(d.id)
+
+            ficheiro_processado = (
+                resultadoAnalise.caminho_ficheiro_processado.url
+                if resultadoAnalise and resultadoAnalise.caminho_ficheiro_processado
+                else None
+            )
+
+            ficheiro_original = (
+                evidencia.caminho_ficheiro.url
+                if evidencia and evidencia.caminho_ficheiro
+                else None
+            )
+
+
+            data_captura_formatada = formatar_data(evidencia.data_captura) if evidencia else None
+            data_analise_formatada = formatar_data(resultadoAnalise.data_analise) if resultadoAnalise else None
+
+            data.append({
                 "id": d.id,
                 "matricula": d.matricula,
                 "estado": d.estado,
                 "descricao": d.descricao,
-            }
-            for d in denuncias
-        ]
+                "tipo_infracao": d.tipo_infracao,
+                "localizacao": d.localizacao,
+                "sentido_direccao": d.sentido_direccao,
+                "ficheiro_processado": ficheiro_processado,
+                "ficheiro_original": ficheiro_original,
+                "data_captura": data_captura_formatada,
+                "codigo_legal": resultadoAnalise.codigo_legal if resultadoAnalise else None,
+                "confianca": resultadoAnalise.confianca if resultadoAnalise else None,
+                "data_analise": data_analise_formatada,
+            })
 
         return Response(data)
+
+    
 
     @swagger_auto_schema(
         operation_description="Listar denuncias por PT"
