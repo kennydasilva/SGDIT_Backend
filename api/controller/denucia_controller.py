@@ -68,19 +68,42 @@ class DenunciaViewSet(ViewSet):
             return Response(
                 {"error": "Denuncia nao encontrada"},
                 status=status.HTTP_404_NOT_FOUND
-            )
+            )       
 
-        data = {
-            "id": denuncia.id,
-            "cidadao_id": denuncia.cidadao_id,
-            "pt_id": denuncia.pt_id,
-            "matricula": denuncia.matricula,
-            "estado": denuncia.estado,
-            "descricao": denuncia.descricao,
-            "codigo_legal": denuncia.codigo_legal,
-            "tipo_infracao": denuncia.tipo_infracao,
-            "localizacao": denuncia.localizacao,
-            "data_registo": denuncia.data_registo,
+        resultadoAnalise = ResultadoAnaliseService.obter_por_denuncia(denuncia.id)
+        evidencia = EvidenciaService.obter_evidencia(denuncia.id)
+
+        ficheiro_processado = (
+                resultadoAnalise.caminho_ficheiro_processado.url
+                if resultadoAnalise and resultadoAnalise.caminho_ficheiro_processado
+                else None
+        )
+
+        ficheiro_original = (
+                evidencia.caminho_ficheiro.url
+                if evidencia and evidencia.caminho_ficheiro
+                else None
+        )
+
+
+        data_captura_formatada = formatar_data(evidencia.data_captura) if evidencia else None
+        data_analise_formatada = formatar_data(resultadoAnalise.data_analise) if resultadoAnalise else None
+
+        data={
+                "id": denuncia.id,
+                "matricula": denuncia.matricula,
+                "estado": denuncia.estado,
+                "descricao": denuncia.descricao,
+                "tipo_infracao": denuncia.tipo_infracao,
+                "localizacao": denuncia.localizacao,
+                "sentido_direccao": denuncia.sentido_direccao,
+                "ficheiro_processado": ficheiro_processado,
+                "ficheiro_original": ficheiro_original,
+                "data_captura": data_captura_formatada,
+                "codigo_legal": resultadoAnalise.codigo_legal if resultadoAnalise else None,
+                "confianca": resultadoAnalise.confianca if resultadoAnalise else None,
+                "data_analise": data_analise_formatada,
+                "infracao_detectada": resultadoAnalise.infracao_detectada if resultadoAnalise else None,
         }
 
         return Response(data)
@@ -170,6 +193,14 @@ class DenunciaViewSet(ViewSet):
     )
     def destroy(self, request, pk=None):
 
+        denuncia=DenunciaService.obter_denuncia_por_id(pk)
+        evidencia=EvidenciaService.obter_evidencia(denuncia.id)
+        resultadoAnalise=ResultadoAnaliseService.obter_por_denuncia(denuncia.id)
+
+        evidencia.delete()
+        resultadoAnalise.delete()
+        
+
         DenunciaService.apagar_denuncia(pk)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -223,6 +254,7 @@ class DenunciaViewSet(ViewSet):
                 "codigo_legal": resultadoAnalise.codigo_legal if resultadoAnalise else None,
                 "confianca": resultadoAnalise.confianca if resultadoAnalise else None,
                 "data_analise": data_analise_formatada,
+                "infracao_detectada": resultadoAnalise.infracao_detectada if resultadoAnalise else None,
             })
 
         return Response(data)

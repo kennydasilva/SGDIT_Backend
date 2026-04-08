@@ -29,10 +29,14 @@ class ResultadoAnaliseService:
 
         if alertas > 0 :
             denuncia.estado = "VALIDADA"
+            resultado.infracao_detectada = True
+            
         else :
             denuncia.estado = "REJEITADA"
+            resultado.infracao_detectada = False
 
         denuncia.save()
+        resultado.save()
 
         return resultado
 
