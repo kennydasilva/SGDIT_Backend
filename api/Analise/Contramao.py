@@ -329,6 +329,9 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
     
     
     modelo = YOLO('yolov8n.pt')
+
+    if not os.path.isabs(caminho_video):
+        caminho_video = os.path.join(settings.MEDIA_ROOT, caminho_video)
     
     
     if caminho_video:
@@ -368,18 +371,18 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
     
     # Configurar writer de vídeo
     if salvar_video:
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
         out = cv2.VideoWriter(output_path, fourcc, fps, (largura, altura))
+        
         print(f" Vídeo de saída: {output_path}")
+
+        if not out.isOpened():
+            raise Exception("Erro ao criar vídeo de saída!")
     
     # Inicializar componentes
     rastreador = RastreadorVeiculos(max_historico=50)
     faixas = DetetorFaixas()
     detetor_contramao = DetetorContramao(fps=fps)
-    
-    
-    
-    
     
     if sentido_direccao == 'direita':
         detetor_contramao.definir_sentido_via('direita')
@@ -560,45 +563,19 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
                    (frame.shape[1]-250, frame.shape[0]-10), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         
-        # Mostrar
-        cv2.imshow('Deteccao de Contramao - Modulo 7', frame_anotado)
+        
         
         # SALVAR FRAME NO VÍDEO
         if salvar_video and out is not None:
             out.write(frame_anotado)
         
-        # Comandos
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
-        elif key == ord('s'):
-            screenshot_path = f"{output_dir}/screenshot_frame_{frame_count}.jpg"
-            cv2.imwrite(screenshot_path, frame_anotado)
-            print(f" Screenshot: {screenshot_path}")
-        elif key == ord('d'):
-            print(f"\n ESTATÍSTICAS:")
-            print(f"   Frames: {frame_count}")
-            print(f"   FPS: {fps_atual:.1f}")
-            print(f"   Veículos únicos: {rastreador.proximo_id}")
-            print(f"   Veículos em contramão: {len(veiculos_contramao)}")
-            print(f"   Alertas enviados: {len(detetor_contramao.alertas_enviados)}")
-        elif key == ord('c'):
-            veiculos_cm = detetor_contramao.get_veiculos_contramao()
-            print(f"\n  VEÍCULOS EM CONTRAMÃO ({len(veiculos_cm)}):")
-            if veiculos_cm:
-                for vid in veiculos_cm:
-                    dados = rastreador.get_dados_veiculo(vid)
-                    if dados:
-                        direcao = detetor_contramao.calcular_direcao_veiculo(dados['centros'])
-                        print(f"   ID:{vid} - direção: {direcao} - pos: {dados['ultimo_centro']}")
-            else:
-                print("   Nenhum veículo em contramão")
+        
     
     # Fechar recursos
     cap.release()
     if salvar_video:
         out.release()
-    cv2.destroyAllWindows()
+    
     log_file.close()
     
     print(f"\n Processamento concluído!")
@@ -609,9 +586,15 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
     print(f" Veículos únicos: {rastreador.proximo_id}")
     alertas=len(detetor_contramao.alertas_enviados)
 
-    analise = ResultadoAnaliseService.executar_analise(denuncia, output_path, alertas)
+    try:
+        analise = ResultadoAnaliseService.executar_analise(denuncia, output_path, alertas)
 
-    return analise
+        return analise
+    
+    except Exception as e:
+        print(f"Erro ao salvar resultado da análise: " ,str(e))
+        return None
+        
 
 
 

@@ -1,4 +1,5 @@
 import os
+from api.model import denuncia
 from api.model.analise import ResultadoAnalise
 from api.model.denuncia import Denuncia
 
@@ -6,21 +7,30 @@ from api.model.denuncia import Denuncia
 class ResultadoAnaliseService:
 
     @staticmethod
-    def executar_analise(denuncia,output_path,alertas):
+    def executar_analise(denuncia, output_path, alertas):
 
-        resultado = ResultadoAnalise.objects.create(
+        if ResultadoAnalise.objects.filter(denuncia=denuncia).exists():
+            print("Já processado, ignorando...")
+            return ResultadoAnalise.objects.get(denuncia=denuncia)
+
+        relative_path = os.path.relpath(output_path, "media")
+
+        resultado, created = ResultadoAnalise.objects.update_or_create(
             denuncia=denuncia,
-            caminho_ficheiro_processado=output_path,
-            descricao=f"Analise automatica para {denuncia.tipo_infracao}",
-            codigo_legal=denuncia.codigo_legal,
-            confianca=0.85,
-            infracao_detectada=True
+            defaults={
+                "caminho_ficheiro_processado": relative_path,
+                "descricao": f"Analise automatica para {denuncia.tipo_infracao}",
+                "codigo_legal": denuncia.codigo_legal,
+                "confianca": 0.85,
+                "infracao_detectada": True
+            }
         )
 
-        if alertas>0:
+        if alertas > 0 :
             denuncia.estado = "VALIDADA"
-        else:
+        else :
             denuncia.estado = "REJEITADA"
+
         denuncia.save()
 
         return resultado

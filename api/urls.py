@@ -10,7 +10,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 router = DefaultRouter()
 router.register(r"pts", PtViewSet, basename="pts")
-router.register(r"denucias", DenunciaViewSet, basename="denucias")
+router.register(r"denuncias", DenunciaViewSet, basename="denuncias")
 
 urlpatterns = [
     path("login/", LoginController.as_view()),

@@ -11,12 +11,11 @@ class DenunciaCreateSerializer(serializers.Serializer):
 
     cidadao_id = serializers.IntegerField()
     pt_id = serializers.IntegerField(required=False, allow_null=True)
-    matricula = serializers.CharField(max_length=255)
-    descricao = serializers.CharField(max_length=255)
-    codigo_legal = serializers.CharField(max_length=50)
+    matricula = serializers.CharField(max_length=255, allow_null=True)
+    descricao = serializers.CharField(max_length=255, allow_null=True)
     tipo_infracao = serializers.ChoiceField(choices=Denuncia.tipoInfracao.choices)
+    sentido_direccao = serializers.CharField(max_length=255, allow_null=True)
     localizacao = serializers.CharField(max_length=255)
-    denuncia_id = serializers.IntegerField()
     caminho_ficheiro = serializers.FileField()
 
 

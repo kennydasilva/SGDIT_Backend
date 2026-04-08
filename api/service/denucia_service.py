@@ -28,19 +28,22 @@ class DenunciaService:
         matricula,
         descricao,
         tipo_infracao,
-        localizacao
+        localizacao,
+        sentido_direccao
     ):
         cidadao = DenunciaService.encontrar_utilizador_cidadao(cidadao_id)
-        
-        
+
         denuncia = Denuncia.objects.create(
             cidadao=cidadao,
             matricula=matricula,
             descricao=descricao,
             tipo_infracao=tipo_infracao,
-            localizacao=localizacao
+            localizacao=localizacao,
+            sentido_direccao=sentido_direccao or "",
+            descricao_pt="",
+            codigo_legal=""
         )
-        
+
         return denuncia
 
     @staticmethod

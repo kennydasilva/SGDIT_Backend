@@ -17,10 +17,13 @@ from api.Analise.parado import main_parado
 from api.Analise.velocidade import main_velocidade
 from api.service.evidencia_service import EvidenciaService
 import threading
+import traceback
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from api.tasks.analise_task import processar_analise_async
 
 class DenunciaViewSet(ViewSet):
+    parser_classes = [MultiPartParser, FormParser]
 
     @swagger_auto_schema(
         operation_description="Listar todas denuncias",
@@ -90,9 +93,11 @@ class DenunciaViewSet(ViewSet):
 
     @swagger_auto_schema(
         operation_description="Criar denuncia",
-        request_body=DenunciaCreateSerializer
+        request_body=DenunciaCreateSerializer,
+        consumes=['multipart/form-data'] 
     )
     def create(self, request):
+        from rest_framework.parsers import MultiPartParser, FormParser
 
         try:
             
@@ -107,23 +112,27 @@ class DenunciaViewSet(ViewSet):
 
             sentido_direccao = request.data.get("sentido_direccao")
 
-           
+
             ficheiro = request.FILES.get("caminho_ficheiro")
+
+            if not ficheiro:
+                return Response({"error": "Ficheiro não enviado"}, status=400)
+
             if not ficheiro.name.endswith(('.mp4', '.avi', '.mov')):
-                return Response(
-                    {"error": "Formato de vídeo inválido"},
-                    status=400
-                )
+                return Response({"error": "Formato inválido"}, status=400)
 
             
             evidencia = EvidenciaService.criar_evidencia(denuncia, ficheiro)
 
             
-            processar_analise_async.delay(
-                denuncia.tipo_infracao,
-                evidencia.caminho_ficheiro.path,
-                denuncia.id,
-                sentido_direccao
+            processar_analise_async.apply_async(
+                args=[
+                    denuncia.tipo_infracao,
+                    evidencia.caminho_ficheiro.path,
+                    denuncia.id,
+                    sentido_direccao
+                ],
+                countdown=5
             )
 
             return Response(
@@ -132,10 +141,9 @@ class DenunciaViewSet(ViewSet):
             )
 
         except Exception as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            
+            traceback.print_exc()
+            return Response({"error": str(e)}, status=500)
 
 
         
@@ -163,6 +171,8 @@ class DenunciaViewSet(ViewSet):
         DenunciaService.apagar_denuncia(pk)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+        
 
     @swagger_auto_schema(
         operation_description="Listar denuncias por cidadao"

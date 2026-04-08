@@ -27,7 +27,7 @@ class Denuncia(models.Model):
     )
 
     data_registo = models.DateTimeField(auto_now_add=True)
-    matricula = models.CharField(max_length=255)
+    matricula = models.CharField(max_length=255, null=True, blank=True)
 
     estado = models.CharField(
         max_length=20,
@@ -35,17 +35,24 @@ class Denuncia(models.Model):
         default=Estado.PENDENTE
     )
 
-    descricao=models.CharField(max_length=255)
-    descricao_pt=models.CharField(max_length=255)
-    codigo_legal=models.CharField(max_length=50)
-    sentido_direccao=models.CharField(max_length=255)
+    descricao=models.CharField(max_length=255, null=True, blank=True)
+    descricao_pt=models.CharField(max_length=255, null=True, blank=True)
+    codigo_legal=models.CharField(max_length=50, null=True, blank=True)
+    sentido_direccao=models.CharField(max_length=255, null=True, blank=True)
 
     class tipoInfracao(models.TextChoices):
         CONTRAMAO = "CONTRAMAO", "contramao"
         PARADO = "PARADO", "parado"
         VELOCIDADE = "VELOCIDADE", "velocidade"
 
-    localizacao = models.CharField(max_length=255)
+    tipo_infracao = models.CharField(
+    max_length=20,
+    choices=tipoInfracao.choices,
+    null=True,
+    blank=True
+    )
+
+    localizacao = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"Denuncia {self.id}"

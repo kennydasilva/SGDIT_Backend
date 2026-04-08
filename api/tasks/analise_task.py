@@ -18,3 +18,6 @@ def processar_analise_async(self, tipo, path, denuncia_id, sentido_direccao):
 
     elif tipo == "VELOCIDADE":
         main_velocidade(path, denuncia)
+
+
+        

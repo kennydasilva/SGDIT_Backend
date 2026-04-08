@@ -10,7 +10,7 @@ class ResultadoAnaliseSerializer(serializers.ModelSerializer):
         model = ResultadoAnalise
         fields = [
             "id",
-            "tipo_infracao",
+          
             "confianca",
             "data_analise",
             "infracao_detectada"
