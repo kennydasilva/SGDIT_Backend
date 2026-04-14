@@ -2,3 +2,16 @@
 *pyc
 __pycache__/
 .env
+*mp4
+*.avi
+*.mkv
+*.flv
+*.mov
+*.wmv
+*.mpeg
+*.mp3
+*.wav
+*.flac
+*.aac
+*.ogg
+*.pdf

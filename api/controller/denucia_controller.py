@@ -9,7 +9,8 @@ from api.model.denuncia import Denuncia
 from api.service.denucia_service import DenunciaService
 from api.serializers.denuncia_serializer import (
     DenunciaCreateSerializer,
-    DenunciaResponseSerializer
+    DenunciaResponseSerializer,
+    DenunciaUpdateSerializer,
 )
 
 from api.Analise.Contramao import main_contramao
@@ -18,14 +19,14 @@ from api.Analise.velocidade import main_velocidade
 from api.service.evidencia_service import EvidenciaService
 import threading
 import traceback
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.tasks.analise_task import processar_analise_async
 from api.helper.dataConvertion import formatar_data
 
 class DenunciaViewSet(ViewSet):
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     @swagger_auto_schema(
         operation_description="Listar todas denuncias",
@@ -35,21 +36,34 @@ class DenunciaViewSet(ViewSet):
 
         denuncias = DenunciaService.listar_denuncias()
 
-        data = [
-            {
-                "id": d.id,
-                "cidadao_id": d.cidadao_id,
-                "pt_id": d.pt_id,
-                "matricula": d.matricula,
-                "estado": d.estado,
-                "descricao": d.descricao,
-                "codigo_legal": d.codigo_legal,
-                "tipo_infracao": d.tipo_infracao,
-                "localizacao": d.localizacao,
-                "data_registo": d.data_registo,
-            }
-            for d in denuncias
-        ]
+        
+        
+
+        
+        data = []
+
+        for d in denuncias:
+
+            resultadoAnalise = ResultadoAnaliseService.obter_por_denuncia(d.id)
+            evidencia = EvidenciaService.obter_evidencia(d.id)
+
+            ficheiro_processado = (
+                resultadoAnalise.caminho_ficheiro_processado.url
+                if resultadoAnalise and resultadoAnalise.caminho_ficheiro_processado
+                else None
+            )
+
+            ficheiro_original = (
+                evidencia.caminho_ficheiro.url
+                if evidencia and evidencia.caminho_ficheiro
+                else None
+            )
+
+
+            data_captura_formatada = formatar_data(evidencia.data_captura) if evidencia else None
+            data_analise_formatada = formatar_data(resultadoAnalise.data_analise) if resultadoAnalise else None
+
+            data.append(DenunciaViewSet.preparar_denuncia(d, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada))
 
         return Response(data)
 
@@ -89,22 +103,7 @@ class DenunciaViewSet(ViewSet):
         data_captura_formatada = formatar_data(evidencia.data_captura) if evidencia else None
         data_analise_formatada = formatar_data(resultadoAnalise.data_analise) if resultadoAnalise else None
 
-        data={
-                "id": denuncia.id,
-                "matricula": denuncia.matricula,
-                "estado": denuncia.estado,
-                "descricao": denuncia.descricao,
-                "tipo_infracao": denuncia.tipo_infracao,
-                "localizacao": denuncia.localizacao,
-                "sentido_direccao": denuncia.sentido_direccao,
-                "ficheiro_processado": ficheiro_processado,
-                "ficheiro_original": ficheiro_original,
-                "data_captura": data_captura_formatada,
-                "codigo_legal": resultadoAnalise.codigo_legal if resultadoAnalise else None,
-                "confianca": resultadoAnalise.confianca if resultadoAnalise else None,
-                "data_analise": data_analise_formatada,
-                "infracao_detectada": resultadoAnalise.infracao_detectada if resultadoAnalise else None,
-        }
+        data= DenunciaViewSet.preparar_denuncia(denuncia, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada)
 
         return Response(data)
 
@@ -174,19 +173,28 @@ class DenunciaViewSet(ViewSet):
         
 
     @swagger_auto_schema(
-        operation_description="Actualizar estado da denuncia"
+        operation_description="Actualizar estado da denuncia user PT",
+        request_body=DenunciaUpdateSerializer
     )
-    @action(detail=True, methods=["patch"], url_path="estado")
-    def actualizar_estado(self, request, pk=None):
+    @action(detail=False, methods=["patch"], url_path="pt/actualizar", 
+     parser_classes=[JSONParser, MultiPartParser])
+    def actualizar_estado(self, request, data=None):
 
+        denuncia_id = int(request.data.get("denuncia_id"))
         estado = request.data.get("estado")
+        codigo_legal = request.data.get("codigo_legal")
+        descricao_pt = request.data.get("descricao_pt")
+        pt_id = int(request.data.get("pt_id"))
 
-        denuncia = DenunciaService.actualizar_estado(pk, estado)
+       
 
-        return Response({
-            "message": "Estado actualizado",
-            "estado": denuncia.estado
-        })
+        denuncia = DenunciaService.actualizar_estado_PT(denuncia_id, estado, codigo_legal, descricao_pt, pt_id)
+
+        return Response(denuncia.id, status=status.HTTP_200_OK)
+
+
+
+
 
     @swagger_auto_schema(
         operation_description="Apagar denuncia"
@@ -195,11 +203,14 @@ class DenunciaViewSet(ViewSet):
 
         denuncia=DenunciaService.obter_denuncia_por_id(pk)
         evidencia=EvidenciaService.obter_evidencia(denuncia.id)
+        
         resultadoAnalise=ResultadoAnaliseService.obter_por_denuncia(denuncia.id)
 
-        evidencia.delete()
-        resultadoAnalise.delete()
-        
+        if evidencia is not None:
+            evidencia.delete()
+
+        if resultadoAnalise is not None:
+            resultadoAnalise.delete()
 
         DenunciaService.apagar_denuncia(pk)
 
@@ -240,14 +251,99 @@ class DenunciaViewSet(ViewSet):
             data_captura_formatada = formatar_data(evidencia.data_captura) if evidencia else None
             data_analise_formatada = formatar_data(resultadoAnalise.data_analise) if resultadoAnalise else None
 
-            data.append({
-                "id": d.id,
-                "matricula": d.matricula,
-                "estado": d.estado,
-                "descricao": d.descricao,
-                "tipo_infracao": d.tipo_infracao,
-                "localizacao": d.localizacao,
-                "sentido_direccao": d.sentido_direccao,
+            data.append(DenunciaViewSet.preparar_denuncia(d, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada))
+
+        return Response(data)
+
+    
+
+    @swagger_auto_schema(
+        operation_description="Listar denuncias validadas"
+    )
+    @action(detail=False, methods=["get"], url_path="pt/validadas")
+    def por_validadas(self, request):
+
+        denuncias = DenunciaService.listar_denuncias_validadas()
+
+        
+        data = []
+
+        for d in denuncias:
+
+            
+                resultadoAnalise = ResultadoAnaliseService.obter_por_denuncia(d.id)
+                evidencia = EvidenciaService.obter_evidencia(d.id)
+
+                ficheiro_processado = (
+                    resultadoAnalise.caminho_ficheiro_processado.url
+                    if resultadoAnalise and resultadoAnalise.caminho_ficheiro_processado
+                    else None
+                )
+
+                ficheiro_original = (
+                    evidencia.caminho_ficheiro.url
+                    if evidencia and evidencia.caminho_ficheiro
+                    else None
+                )
+
+
+                data_captura_formatada = formatar_data(evidencia.data_captura) if evidencia else None
+                data_analise_formatada = formatar_data(resultadoAnalise.data_analise) if resultadoAnalise else None
+
+                data.append(DenunciaViewSet.preparar_denuncia(d, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada))
+                
+            
+        return Response(data)
+
+
+
+    @swagger_auto_schema(
+        operation_description="Listar denuncias por PT"
+    )
+    @action(detail=False, methods=["get"], url_path="pt/denuncias/(?P<pt_id>[^/.]+)")
+    def por_pt(self, request, pt_id=None):
+
+        denuncias = DenunciaService.listar_por_pt(pt_id)
+        
+        data = []
+
+        for d in denuncias:
+
+            resultadoAnalise = ResultadoAnaliseService.obter_por_denuncia(d.id)
+            evidencia = EvidenciaService.obter_evidencia(d.id)
+
+            ficheiro_processado = (
+                resultadoAnalise.caminho_ficheiro_processado.url
+                if resultadoAnalise and resultadoAnalise.caminho_ficheiro_processado
+                else None
+            )
+
+            ficheiro_original = (
+                evidencia.caminho_ficheiro.url
+                if evidencia and evidencia.caminho_ficheiro
+                else None
+            )
+
+
+            data_captura_formatada = formatar_data(evidencia.data_captura) if evidencia else None
+            data_analise_formatada = formatar_data(resultadoAnalise.data_analise) if resultadoAnalise else None
+
+            data.append(DenunciaViewSet.preparar_denuncia(d, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada))
+
+        return Response(data)
+
+
+
+
+    def preparar_denuncia(denuncia, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada):
+        data={
+                "id": denuncia.id,
+                "matricula": denuncia.matricula,
+                "estado": denuncia.estado,
+                "descricao": denuncia.descricao,
+                "tipo_infracao": denuncia.tipo_infracao,
+                "localizacao": denuncia.localizacao,
+                "sentido_direccao": denuncia.sentido_direccao,
                 "ficheiro_processado": ficheiro_processado,
                 "ficheiro_original": ficheiro_original,
                 "data_captura": data_captura_formatada,
@@ -255,28 +351,6 @@ class DenunciaViewSet(ViewSet):
                 "confianca": resultadoAnalise.confianca if resultadoAnalise else None,
                 "data_analise": data_analise_formatada,
                 "infracao_detectada": resultadoAnalise.infracao_detectada if resultadoAnalise else None,
-            })
+        }
 
-        return Response(data)
-
-    
-
-    @swagger_auto_schema(
-        operation_description="Listar denuncias por PT"
-    )
-    @action(detail=False, methods=["get"], url_path="pt/(?P<pt_id>[^/.]+)")
-    def por_pt(self, request, pt_id=None):
-
-        denuncias = DenunciaService.listar_por_pt(pt_id)
-
-        data = [
-            {
-                "id": d.id,
-                "matricula": d.matricula,
-                "estado": d.estado,
-                "descricao": d.descricao,
-            }
-            for d in denuncias
-        ]
-
-        return Response(data)
+        return data

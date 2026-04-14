@@ -1,5 +1,6 @@
 from api.model.user import Utilizador, Cidadao, PT
 from api.model.denuncia import Denuncia
+from .resultado_analise_service import ResultadoAnaliseService
 # @kenny dasilva
 # Servico de gestao de denuncia (denuncia)
 # Responsabilidades: 
@@ -14,6 +15,10 @@ class DenunciaService:
     @staticmethod
     def listar_denuncias():
         return Denuncia.objects.all()
+    
+    @staticmethod
+    def listar_denuncias_validadas():
+        return Denuncia.objects.filter(estado="VALIDADA")
 
     @staticmethod
     def obter_denuncia_por_id(denuncia_id):
@@ -21,6 +26,8 @@ class DenunciaService:
             return Denuncia.objects.get(id=denuncia_id)
         except Denuncia.DoesNotExist:
             return None
+
+    
 
     @staticmethod
     def criar_denuncia(
@@ -53,17 +60,23 @@ class DenunciaService:
         denuncia.save()
         return denuncia
 
+
     @staticmethod
-    def actualizar_estado_PT(denuncia_id, estado, pt_id, descricao_pt):
+    def actualizar_estado_PT(denuncia_id, estado, codigo_legal, descricao_pt, pt_id):
+
         denuncia = Denuncia.objects.get(id=denuncia_id)
-        
-        pt = DenunciaService.encontrar_utilizador_PT(pt_id)
-        if pt is not None:  
-            denuncia.descricao_pt = descricao_pt
-            denuncia.pt = pt
-            denuncia.estado = estado
-            denuncia.save()
+        analise=ResultadoAnaliseService.obter_por_denuncia(denuncia_id=denuncia.id)
+        analise.codigo_legal=codigo_legal
+        analise.descricao=descricao_pt
+        analise.save()
+
+        denuncia.pt = DenunciaService.encontrar_utilizador_PT(pt_id)
+        denuncia.estado = estado
+
+        denuncia.save()
         return denuncia
+
+    
 
     @staticmethod
     def apagar_denuncia(denuncia_id):

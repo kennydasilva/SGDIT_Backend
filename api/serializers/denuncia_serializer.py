@@ -31,3 +31,11 @@ class DenunciaResponseSerializer(serializers.Serializer):
     tipo_infracao = serializers.CharField()
     localizacao = serializers.CharField()
     data_registo = serializers.DateTimeField()
+
+
+class DenunciaUpdateSerializer(serializers.Serializer):
+    denuncia_id = serializers.IntegerField()
+    estado = serializers.CharField()
+    codigo_legal = serializers.CharField()
+    descricao_pt = serializers.CharField()
+    pt_id = serializers.CharField()

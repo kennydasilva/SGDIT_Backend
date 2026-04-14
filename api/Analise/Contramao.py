@@ -6,6 +6,7 @@ import math
 import time
 from datetime import datetime
 import os
+from api.helper.videoConvert import converter_video_para_browser
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.model.analise import ResultadoAnalise
 from django.conf import settings
@@ -369,6 +370,8 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
     else:
         output_path = f"{output_dir}/webcam_analise_contramao_{timestamp}.mp4"
     
+    video_browser = None
+    
     # Configurar writer de vídeo
     if salvar_video:
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -575,6 +578,7 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
     cap.release()
     if salvar_video:
         out.release()
+        video_browser = converter_video_para_browser(output_path)
     
     log_file.close()
     
@@ -587,7 +591,7 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
     alertas=len(detetor_contramao.alertas_enviados)
 
 
-    analise = ResultadoAnaliseService.executar_analise(denuncia, output_path, alertas)
+    analise = ResultadoAnaliseService.executar_analise(denuncia, video_browser, alertas)
 
     return analise
     
