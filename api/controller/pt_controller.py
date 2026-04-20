@@ -52,6 +52,8 @@ class PtViewSet(ViewSet):
             "email": pt.utilizador.email,
             "numero_agente": pt.numero_agente,
             "localizacao": pt.localizacao,
+            "data_registo": pt.utilizador.data_registo,
+            "numero": pt.utilizador.numero,
             "admin_id": pt.admin_id
         }
 
