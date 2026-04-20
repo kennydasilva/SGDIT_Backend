@@ -11,8 +11,10 @@ class Utilizador(AbstractUser):
         CIDADAO = "CIDADAO", "Cidadao"
 
     nome = models.CharField(max_length=150)
+    numero = models.CharField(max_length=150, blank=True, null=True)
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=Role.choices)
+    data_registo = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

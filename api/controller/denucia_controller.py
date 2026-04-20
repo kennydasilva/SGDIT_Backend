@@ -30,13 +30,11 @@ class DenunciaViewSet(ViewSet):
 
     @swagger_auto_schema(
         operation_description="Listar todas denuncias",
-        responses={200: DenunciaResponseSerializer(many=True)}
+        responses={200: "sucesso na requisicao"}
     )
     def list(self, request):
 
         denuncias = DenunciaService.listar_denuncias()
-
-        
         
 
         
@@ -65,7 +63,12 @@ class DenunciaViewSet(ViewSet):
 
             data.append(DenunciaViewSet.preparar_denuncia(d, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada))
 
+
         return Response(data)
+
+
+        
+        
 
 
 
