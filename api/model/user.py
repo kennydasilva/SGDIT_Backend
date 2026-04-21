@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
 
 
 class Utilizador(AbstractUser):
@@ -14,7 +15,7 @@ class Utilizador(AbstractUser):
     numero = models.CharField(max_length=150, blank=True, null=True)
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=Role.choices)
-    data_registo = models.DateTimeField(auto_now_add=True)
+    data_registo = models.DateTimeField(auto_now_add=True, null=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

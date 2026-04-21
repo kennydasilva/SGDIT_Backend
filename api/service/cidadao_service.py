@@ -19,3 +19,14 @@ class CidadaoService:
         )
 
         return cidadao
+    
+
+    @staticmethod
+    def obter_cidadaoById(id):
+
+        cidadao=Cidadao.objects.get(utilizador__id=id)
+
+        return cidadao
+
+
+

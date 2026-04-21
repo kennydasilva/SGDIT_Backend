@@ -2,7 +2,7 @@ from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
-from api.permissions.role_permissions import IsAdmin
+from api.permissions.role_permissions import IsAdmin, IsPT
 from api.service.pt_service import PTService
 from api.serializers.user_serializer import PTCreateSerializer, PTResponseSerializer
 from rest_framework.decorators import action
@@ -32,32 +32,9 @@ class PtViewSet(ViewSet):
 
         return Response(data)
 
-    @swagger_auto_schema(
-        operation_description="Obter um PT por ID",
-        responses={200: PTResponseSerializer}
-    )
-    def retrieve(self, request, pk=None):
+    
 
-        pt = PTService.obter_pt_por_id(pk)
 
-        if not pt:
-            return Response(
-                {"error": "PT nao encontrado"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        data = {
-            "id": pt.id,
-            "nome": pt.utilizador.nome,
-            "email": pt.utilizador.email,
-            "numero_agente": pt.numero_agente,
-            "localizacao": pt.localizacao,
-            "data_registo": pt.utilizador.data_registo,
-            "numero": pt.utilizador.numero,
-            "admin_id": pt.admin_id
-        }
-
-        return Response(data)
 
     @swagger_auto_schema(
         operation_description="Criar PT",
@@ -79,6 +56,8 @@ class PtViewSet(ViewSet):
             status=status.HTTP_201_CREATED
         )
 
+
+
     @swagger_auto_schema(
         operation_description="Actualizar dados do PT",
         request_body=PTCreateSerializer,
@@ -97,6 +76,9 @@ class PtViewSet(ViewSet):
         )
 
         return Response({"message": "PT actualizado"})
+    
+
+
 
     @swagger_auto_schema(
         operation_description="Apagar um PT pelo ID",
@@ -111,6 +93,9 @@ class PtViewSet(ViewSet):
         PTService.apagar_pt(pk)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
     
     @swagger_auto_schema(
         operation_description="Listar todos os PTs de um admin especifico",
@@ -134,6 +119,43 @@ class PtViewSet(ViewSet):
         ]
 
         return Response(data)
+
+
+
+
+
+
+class PtUserViewSet(ViewSet):
+
+    permission_classes = [IsPT]
+
+    @swagger_auto_schema(
+        operation_description="Obter um PT por ID",
+        responses={200: PTResponseSerializer}
+    )
+    def retrieve(self, request, pk=None):
+
+        pt = PTService.obter_pt(pk)
+
+        if not pt:
+            return Response(
+                {"error": "PT nao encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        data = {
+            "id": pt.id,
+            "nome": pt.utilizador.nome,
+            "email": pt.utilizador.email,
+            "numero_agente": pt.numero_agente,
+            "localizacao": pt.localizacao,
+            "data_registo": pt.utilizador.data_registo,
+            "numero": pt.utilizador.numero,
+            "admin_id": pt.admin_id
+        }
+
+        return Response(data)
+
 
 
 

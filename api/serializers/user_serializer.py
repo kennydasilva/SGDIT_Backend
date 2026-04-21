@@ -58,6 +58,8 @@ class PTResponseSerializer(serializers.Serializer):
     numero_agente = serializers.CharField()
     localizacao = serializers.CharField()
     admin_id = serializers.IntegerField()
+    data_registo = serializers.DateTimeField()
+    numero = serializers.CharField()
 
 class CriarAdminSerializer(serializers.Serializer):
 
@@ -72,3 +74,14 @@ class AdminResponseSerializer(serializers.Serializer):
     nome = serializers.CharField()
     email = serializers.EmailField()
     posto = serializers.CharField()
+
+
+
+class CidadaoResponseSerializer(serializers.Serializer):
+
+    id = serializers.IntegerField()
+    nome = serializers.CharField()
+    email = serializers.EmailField()
+    data_registo = serializers.DateTimeField()
+    numero = serializers.CharField()
+    

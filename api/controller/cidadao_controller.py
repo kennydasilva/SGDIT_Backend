@@ -4,6 +4,8 @@ from rest_framework import status
 from api.service.cidadao_service import CidadaoService
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from rest_framework.viewsets import ViewSet
+from api.permissions.role_permissions import IsCidadao
 
 
 class RegistarCidadaoController(APIView):
@@ -39,3 +41,36 @@ class RegistarCidadaoController(APIView):
             {"message": "Cidadão criado", "id": cidadao.id},
             status=status.HTTP_201_CREATED
         )
+
+
+
+
+
+class CidadaoUserViewSet(ViewSet):
+
+    permission_classes = [IsCidadao]
+
+    @swagger_auto_schema(
+        operation_description="Obter um cidadão por ID",
+        responses={200: CidadaoResponseSerializer}
+    )
+    def retrieve(self, request, pk=None):
+
+        cidadao = CidadaoService.obter_cidadao(pk)
+
+        if not cidadao:
+            return Response(
+                {"error": "Cidadão não encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        data = {
+            "id": cidadao.id,
+            "nome": cidadao.utilizador.nome,
+            "email": cidadao.utilizador.email,
+            "data_registo": cidadao.utilizador.data_registo,
+            "numero": cidadao.utilizador.numero,
+            
+        }
+
+        return Response(data)
