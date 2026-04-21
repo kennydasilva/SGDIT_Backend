@@ -2,7 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from api.controller.auth_controller import LoginController
-from api.controller.cidadao_controller import RegistarCidadaoController
+from api.controller.cidadao_controller import CidadaoUserViewSet, RegistarCidadaoController
 from api.controller.admin_controller import AdminController
 from api.controller.denucia_controller import DenunciaViewSet
 from api.controller.pt_controller import PtViewSet, PtUserViewSet
@@ -13,6 +13,7 @@ router = DefaultRouter()
 router.register(r"pts", PtViewSet, basename="pts")
 router.register(r"pts/user", PtUserViewSet, basename="pts-user")
 router.register(r"denuncias", DenunciaViewSet, basename="denuncias")
+router.register(r"cidadao/user", CidadaoUserViewSet, basename="cidadao-users")
 
 urlpatterns = [
     path("login/", LoginController.as_view()),

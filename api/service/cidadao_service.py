@@ -1,3 +1,5 @@
+
+
 from api.model.user import Cidadao, Utilizador
 
 
@@ -28,5 +30,25 @@ class CidadaoService:
 
         return cidadao
 
+
+    @staticmethod
+    def actualizar_cidadao(cidadao_id, nome=None, numero=None):
+
+        cidadao = Cidadao.objects.get(utilizador__id=cidadao_id)
+
+        if nome:
+            cidadao.utilizador.nome = nome
+
+        if numero:
+            cidadao.utilizador.numero = numero
+
+        cidadao.utilizador.save()
+        return cidadao
+
+
+    @staticmethod
+    def listar_cidadaos():
+
+        return Cidadao.objects.all()
 
 

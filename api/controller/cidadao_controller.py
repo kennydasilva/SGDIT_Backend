@@ -1,11 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from schemathesis.hooks import action
 from api.service.cidadao_service import CidadaoService
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.viewsets import ViewSet
 from api.permissions.role_permissions import IsCidadao
+from api.serializers.user_serializer import CidadaoResponseSerializer
 
 
 class RegistarCidadaoController(APIView):
@@ -56,7 +58,7 @@ class CidadaoUserViewSet(ViewSet):
     )
     def retrieve(self, request, pk=None):
 
-        cidadao = CidadaoService.obter_cidadao(pk)
+        cidadao = CidadaoService.obter_cidadaoById(pk)
 
         if not cidadao:
             return Response(
@@ -74,3 +76,25 @@ class CidadaoUserViewSet(ViewSet):
         }
 
         return Response(data)
+
+
+    @swagger_auto_schema(
+        operation_description="Actualizar dados do PT",
+        request_body=CidadaoResponseSerializer,
+        responses={
+            200: "PT actualizado com sucesso",
+            404: "PT nao encontrado"
+        }
+    )
+    def update(self, request, pk=None):
+
+        CidadaoService.actualizar_cidadao(
+            pk,
+            request.data.get("nome"),
+            request.data.get("numero"),
+        )
+
+        return Response({"message": "PT actualizado"})
+    
+
+   
