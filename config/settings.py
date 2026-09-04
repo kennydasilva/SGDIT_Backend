@@ -204,6 +204,18 @@ CELERY_TASK_SERIALIZER = 'json'
 
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 
+# Cache de leitura (Redis) - base de dados diferente (1) da usada pelo Celery (0)
+# para nao misturar chaves de cache com mensagens de fila
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv("REDIS_CACHE_URL", "redis://localhost:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
+
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@sgdit.local")
 
