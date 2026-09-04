@@ -272,25 +272,30 @@ def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
         largura_pixels = faixa.calcular_largura_via(frame)
         velocidade.auto_calibrar(largura_pixels)
 
-        resultados = modelo(frame, classes=[2, 3, 5, 7])
+        try:
+            resultados = modelo(frame, classes=[2, 3, 5, 7])
+        except Exception as e:
+            print(f"⚠️ Erro ao processar frame {frame_num}, a saltar: {e}")
+            resultados = None
 
         detecoes = []
 
-        for r in resultados[0]:
+        if resultados and len(resultados) > 0:
+            for r in resultados[0]:
 
-            conf = float(r.boxes.conf[0].cpu().numpy())
-            if conf < 0.4:
-                continue
+                conf = float(r.boxes.conf[0].cpu().numpy())
+                if conf < 0.4:
+                    continue
 
-            x1, y1, x2, y2 = r.boxes.xyxy[0].cpu().numpy().astype(int)
-            cx = (x1 + x2) // 2
-            cy = (y1 + y2) // 2
+                x1, y1, x2, y2 = r.boxes.xyxy[0].cpu().numpy().astype(int)
+                cx = (x1 + x2) // 2
+                cy = (y1 + y2) // 2
 
-            detecoes.append({
-                "centro": (cx, cy),
-                "bbox": (x1, y1, x2, y2),
-                "confianca": conf
-            })
+                detecoes.append({
+                    "centro": (cx, cy),
+                    "bbox": (x1, y1, x2, y2),
+                    "confianca": conf
+                })
 
         ativos = rastreador.atualizar(detecoes, frame_num)
 

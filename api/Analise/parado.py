@@ -356,33 +356,42 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True,tempo_min_p
         escala_y = frame.shape[0] / 360
         
         # Detetar veículos
-        resultados = modelo(frame_pequeno, classes=[2, 3, 5, 7])
-        
+        try:
+            resultados = modelo(frame_pequeno, classes=[2, 3, 5, 7])
+        except Exception as e:
+            print(f"⚠️ Erro ao processar frame {frame_count}, a saltar: {e}")
+            resultados = None
+
         # Extrair deteções
         detecoes = []
-        for det in resultados[0]:
-            x1, y1, x2, y2 = det.boxes.xyxy[0].cpu().numpy().astype(int)
-            classe_id = int(det.boxes.cls[0].cpu().numpy())
-            confianca = float(det.boxes.conf[0].cpu().numpy())
-            
-            # Escalar de volta
-            x1 = int(x1 * escala_x)
-            y1 = int(y1 * escala_y)
-            x2 = int(x2 * escala_x)
-            y2 = int(y2 * escala_y)
-            
-            centro_x = (x1 + x2) // 2
-            centro_y = (y1 + y2) // 2
-            
-            nome_classes = {2: 'carro', 3: 'moto', 5: 'autocarro', 7: 'camiao'}
-            classe = nome_classes.get(classe_id, 'desconhecido')
-            
-            detecoes.append({
-                'centro': (centro_x, centro_y),
-                'bbox': (x1, y1, x2, y2),
-                'classe': classe,
-                'confianca': confianca
-            })
+        if resultados and len(resultados) > 0:
+            for det in resultados[0]:
+                confianca = float(det.boxes.conf[0].cpu().numpy())
+
+                if confianca < 0.4:
+                    continue
+
+                x1, y1, x2, y2 = det.boxes.xyxy[0].cpu().numpy().astype(int)
+                classe_id = int(det.boxes.cls[0].cpu().numpy())
+
+                # Escalar de volta
+                x1 = int(x1 * escala_x)
+                y1 = int(y1 * escala_y)
+                x2 = int(x2 * escala_x)
+                y2 = int(y2 * escala_y)
+
+                centro_x = (x1 + x2) // 2
+                centro_y = (y1 + y2) // 2
+
+                nome_classes = {2: 'carro', 3: 'moto', 5: 'autocarro', 7: 'camiao'}
+                classe = nome_classes.get(classe_id, 'desconhecido')
+
+                detecoes.append({
+                    'centro': (centro_x, centro_y),
+                    'bbox': (x1, y1, x2, y2),
+                    'classe': classe,
+                    'confianca': confianca
+                })
         
         # Atualizar tracking
         veiculos_ativos = rastreador.atualizar(detecoes, frame_count, time.time())
