@@ -32,6 +32,7 @@ class RegistarCidadaoController(APIView):
         nome=request.data.get("nome")
         email=request.data.get("email")
         password=request.data.get("password")
+        numero=request.data.get("numero")
 
         if not nome or not email or not password:
             return Response(
@@ -50,7 +51,8 @@ class RegistarCidadaoController(APIView):
         cidadao=CidadaoService.registar_cidadao(
             nome,
             email,
-            password
+            password,
+            numero
         )
 
         return Response(
