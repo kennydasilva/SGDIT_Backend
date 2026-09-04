@@ -6,10 +6,8 @@ from api.service.admin_service import AdminService
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from api.serializers.user_serializer import CidadaoResponseSerializer, CriarAdminSerializer, AdminResponseSerializer
-from rest_framework.viewsets import ViewSet
-from rest_framework.decorators import action
 
-from api.service.cidadao_service import CidadaoService
+
 class AdminController(APIView):
     
     permission_classes=[IsSuperAdmin]
@@ -105,43 +103,4 @@ class AdminController(APIView):
             {"message":"Admin apagado"},
             status=status.HTTP_204_NO_CONTENT
         )
-
-
-
-
-class SuperAdminViewSet(ViewSet):
-
-    permission_classes = [IsSuperAdmin]
-
-    @swagger_auto_schema(
-        operation_description="listar cidadaos",
-        
-    )
-    @action(detail=False, methods=["get"], url_path="cidadao/(?P<cidadao_id>[^/.]+)")
-    def listar_cidadaos(self, request, pk=None):
-
-        cidadao = CidadaoService.listar_cidadaos()
-
-        if not cidadao:
-            return Response(
-                {"error": "Cidadão não encontrado"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        data=[]
-
-        for c in cidadao:
-            dat = {
-                "id": cidadao.id,
-                "nome": cidadao.utilizador.nome,
-                "email": cidadao.utilizador.email,
-                "data_registo": cidadao.utilizador.data_registo,
-                "numero": cidadao.utilizador.numero,
-                
-            }
-            data.append(dat)
-
-        return Response(data)
-
-
 
