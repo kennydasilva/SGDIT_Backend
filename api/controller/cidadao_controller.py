@@ -33,6 +33,20 @@ class RegistarCidadaoController(APIView):
         email=request.data.get("email")
         password=request.data.get("password")
 
+        if not nome or not email or not password:
+            return Response(
+                {"error": "Nome, email e password são obrigatórios"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from api.model.user import Utilizador
+
+        if Utilizador.objects.filter(email=email).exists():
+            return Response(
+                {"error": "Já existe uma conta registada com este email"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         cidadao=CidadaoService.registar_cidadao(
             nome,
             email,
