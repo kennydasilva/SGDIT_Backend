@@ -26,17 +26,20 @@ def converter_video_para_browser(caminho_video):
             "-y",
             "-i", caminho_video,
 
-           
+            # limita a largura a 1280px (preserva aspect ratio) - é vídeo de
+            # revisão/evidência, não precisa da resolução nativa do telemóvel
+            "-vf", "scale='min(1280,iw)':'-2'",
+
             "-c:v", "libx264",
-            "-preset", "fast",
-            "-crf", "23",
+            "-preset", "veryfast",
+            "-crf", "27",
             "-pix_fmt", "yuv420p",
 
-            
-            "-c:a", "aac",
-            "-b:a", "128k",
 
-           
+            "-c:a", "aac",
+            "-b:a", "96k",
+
+
             "-movflags", "+faststart",
 
             output_browser

@@ -10,6 +10,7 @@ from api.helper.videoConvert import converter_video_para_browser
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.model.analise import ResultadoAnalise
 from api.Analise.modelo import obter_modelo
+from api.helper.videoPreprocess import preprocessar_video
 from django.conf import settings
 
 # ============================================
@@ -22,7 +23,10 @@ class DetetorContramao:
     """
     def __init__(self, fps=30):
         self.sentido_via = 'direita'
-        self.min_frames_para_alerta = 5
+        # equivalente a 5 frames a 30fps (~0.17s) - calculado a partir do fps
+        # real do vídeo para que reduzir o fps no pré-processamento não altere
+        # o tempo necessário para confirmar a infração
+        self.min_frames_para_alerta = max(1, round((fps or 30) / 6))
         self.historico_contramao = defaultdict(list)
         self.alertas_enviados = set()
         self.fps = fps
@@ -337,8 +341,12 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
 
     if not os.path.isabs(caminho_video):
         caminho_video = os.path.join(settings.MEDIA_ROOT, caminho_video)
-    
-    
+
+    caminho_original = caminho_video
+
+    if caminho_video:
+        caminho_video = preprocessar_video(caminho_video)
+
     if caminho_video:
         cap = cv2.VideoCapture(caminho_video)
         print(f" Vídeo de entrada: {caminho_video}")
@@ -593,7 +601,10 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
     if salvar_video:
         out.release()
         video_browser = converter_video_para_browser(output_path)
-    
+
+    if caminho_video != caminho_original and os.path.exists(caminho_video):
+        os.remove(caminho_video)
+
     log_file.close()
     
     print(f"\n Processamento concluído!")

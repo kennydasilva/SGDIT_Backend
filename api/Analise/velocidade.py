@@ -10,6 +10,7 @@ from api.helper.videoConvert import converter_video_para_browser
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.model.analise import ResultadoAnalise
 from api.Analise.modelo import obter_modelo
+from api.helper.videoPreprocess import preprocessar_video
 from django.conf import settings
 
 
@@ -150,9 +151,12 @@ class CalculadorVelocidade:
 
 class DetetorExcessoVelocidade:
 
-    def __init__(self, limite_kmh=60):
+    def __init__(self, limite_kmh=60, fps=30):
         self.limite = limite_kmh
-        self.frames_confirmacao = 5
+        # equivalente a 5 frames a 30fps (~0.17s) - calculado a partir do fps
+        # real do vídeo para que reduzir o fps no pré-processamento não altere
+        # o tempo necessário para confirmar a infração
+        self.frames_confirmacao = max(1, round((fps or 30) / 6))
         self.historico = defaultdict(int)
         self.alertas_enviados = set()  # ← NOVO: guarda IDs que já alertaram
         self.total_alertas = 0          # ← NOVO: contador total de alertas
@@ -208,6 +212,11 @@ def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
     if caminho and not os.path.isabs(caminho):
         caminho = os.path.join(settings.MEDIA_ROOT, caminho)
 
+    caminho_original = caminho
+
+    if caminho:
+        caminho = preprocessar_video(caminho)
+
     if caminho:
         cap = cv2.VideoCapture(caminho)
         print(f"📁 Vídeo: {caminho}")
@@ -250,7 +259,7 @@ def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
     rastreador = RastreadorVeiculos()
     velocidade = CalculadorVelocidade()
     faixa = DetetorFaixaSimples()
-    detetor_excesso = DetetorExcessoVelocidade(limite_kmh)
+    detetor_excesso = DetetorExcessoVelocidade(limite_kmh, fps=fps_video)
 
     velocidade.configurar_fps(fps_video)
 
@@ -380,6 +389,9 @@ def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
 
     cap.release()
     writer.release()
+
+    if caminho != caminho_original and os.path.exists(caminho):
+        os.remove(caminho)
 
     video_browser = converter_video_para_browser(output_path)
 
