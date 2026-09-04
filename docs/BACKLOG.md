@@ -18,13 +18,20 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - `POST /api/auth/password-reset/confirm/` — recebe `uid` + `token` + nova password, valida e altera.
   - `EMAIL_BACKEND` de consola (dev) e `FRONTEND_URL` configuráveis via `.env`.
   - Erro de email duplicado no registo de cidadão tratado com 400 (antes rebentava com 500). _(commit `7fcd2aa`)_
-- **Frontend** — `src/utils/validationSchemas.ts` criado: regex e schemas zod partilhados (nome, email, password forte, telefone `+244`, matrícula `AB-12-CD`, código legal, número de agente, posto, localização, descrição), para reutilizar em todos os formulários.
+- **Backend** — signup de cidadão passa a aceitar `numero` (telefone) opcional no registo.
+- **Frontend** — `fix: remover entrada inválida tailwindcss/vite do package.json` (alteração pendente de sessão anterior, commitada à parte). _(commit `4cc59c9`)_
+- **Frontend** — Signup do cidadão (`SignupPage.tsx`, antes vazio) com validação zod/regex (nome, email, telefone `+258`, senha forte), ligado ao endpoint `/cidadaos/registrar/` já existente.
+- **Frontend** — Recuperação de senha: `RecuperarSenhaPage.tsx` (pedir email) + `RedefinirSenhaPage.tsx` (nova senha via link), rotas `/cadastrar`, `/recuperar-senha`, `/redefinir-senha/:uid/:token` em `AppRoutes.tsx`.
+- **Frontend** — `authService.ts`: novas funções `requestPasswordReset`/`confirmPasswordReset`; corrigido `refreshToken` (apontava para rota inexistente `/api/auth/token/refresh/`).
+- **Frontend** — `LoginPage.tsx`: links para cadastro/recuperação via `Link` do react-router (antes `<a href>` morto, sem rota).
+- **Frontend** — `src/utils/validationSchemas.ts` criado (regex/zod partilhados: nome, email, senha forte, telefone `+258 8XX XXX XXX` Moçambique, matrícula `AB-12-CD`, código legal, número de agente, posto, localização, descrição) e aplicado a `LoginPage`, `CidadaoPerfil`, `CriarDenuncia`, `Admin/Policias`, `SuperAdmin/Admins`, `PT/DetalhesDenunciaPt`. _(commits `67abc07`, `f984c40`)_
+- Removidos ficheiros mortos: `SignupPage.jsx`, `LoginService.js`, `validators.js` (vazios, substituídos pelo novo signup e `validationSchemas.ts`).
 
 ### 🔄 Em progresso
 
-- **Frontend** — Signup do cidadão (`SignupPage.jsx` está vazio, a converter para `.tsx` com validação zod/regex).
-- **Frontend** — Páginas de recuperação de senha (pedir email + redefinir com token) e respetivas rotas em `AppRoutes.tsx`.
-- **Frontend** — Aplicar as regex de `validationSchemas.ts` aos formulários já existentes: `LoginPage.tsx`, `cidadao/CidadaoPerfil.tsx`, `cidadao/CriarDenuncia.tsx`, `Admin/Policias.tsx`, `SuperAdmin/Admins.tsx`, `PT/DetalhesDenunciaPt.tsx`.
+- **Backend** — corrigir bugs nos algoritmos de análise de vídeo `api/Analise/velocidade.py` (excesso de velocidade) e `api/Analise/parado.py` (veículo parado) — apenas `Contramao.py` está a funcionar sem bugs, segundo teste do utilizador.
+- Adicionar novo tipo de denúncia: **acidente de viação** (novo algoritmo de deteção + suporte end-to-end backend/frontend).
+- Após as correções: analisar os 3(4) algoritmos de deteção e sugerir melhorias de desenho e otimização de tempo de processamento.
 
 ### ⏳ Por fazer (identificado mas não priorizado ainda)
 
