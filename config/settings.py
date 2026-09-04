@@ -191,6 +191,10 @@ SWAGGER_SETTINGS = {
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
+# Tamanho máximo (MB) para vídeos de evidência enviados por cidadãos.
+# Mantido baixo por realismo de rede móvel (dados limitados/lentos em Moçambique).
+DENUNCIA_VIDEO_MAX_SIZE_MB = int(os.getenv("DENUNCIA_VIDEO_MAX_SIZE_MB", "100"))
+
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
