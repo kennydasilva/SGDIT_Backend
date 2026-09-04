@@ -7,7 +7,7 @@ from api.model.denuncia import Denuncia
 class ResultadoAnaliseService:
 
     @staticmethod
-    def executar_analise(denuncia, output_path, alertas):
+    def executar_analise(denuncia, output_path, alertas, confianca=0.5):
 
         if ResultadoAnalise.objects.filter(denuncia=denuncia).exists():
             print("Já processado, ignorando...")
@@ -21,9 +21,9 @@ class ResultadoAnaliseService:
                 "caminho_ficheiro_processado": relative_path,
                 "descricao": f"Analise automatica para {denuncia.tipo_infracao}",
                 "codigo_legal": denuncia.codigo_legal,
-                "confianca": 0.85,
+                "confianca": round(min(max(confianca, 0), 1), 2),
                 "infracao_detectada": True,
-                
+
             }
         )
 
