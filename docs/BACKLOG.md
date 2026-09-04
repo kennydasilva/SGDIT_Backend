@@ -60,7 +60,6 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 
 - **UI de paginação no frontend** (botões Seguinte/Anterior/contagem) — o backend já pagina, o frontend ainda só consome a primeira página.
 - ~~Reconhecimento automático de matrícula (ALPR/OCR)~~ — **rejeitado pelo utilizador** (2026-09-04): a qualidade da câmara do telemóvel do cidadão é demasiado variável/imprevisível para dar leituras fiáveis; geraria falsos negativos constantes e falsa expectativa de verificação automática. Não avançar.
-- ~~Reconhecimento automático de matrícula (ALPR/OCR)~~ — **rejeitado pelo utilizador** (2026-09-04): a qualidade da câmara do telemóvel do cidadão é demasiado variável/imprevisível para dar leituras fiáveis; geraria falsos negativos constantes e falsa expectativa de verificação automática. Não avançar.
 - **Geolocalização nas denúncias** (lat/lng capturada no telemóvel do cidadão ao criar a denúncia, em vez de só texto livre em `localizacao`). Desbloqueia um mapa real de infrações para Super Admin/PT e resolve o "agente mais próximo" pendente para o SMS de acidente de viação (ver item abaixo). Custo: migração no modelo, pedir permissão de localização no browser, lib de mapas (Leaflet, sem chave paga).
 - Análise dos 3 algoritmos de deteção feita e registada em [`docs/ANALISE_ALGORITMOS_VIDEO.md`](ANALISE_ALGORITMOS_VIDEO.md) — nenhuma sugestão aplicada ainda, por priorizar/discutir.
 - **Denúncia de "acidente de viação" (novo tipo) — decisão de desenho confirmada com o utilizador:**
