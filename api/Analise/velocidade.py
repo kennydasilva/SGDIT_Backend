@@ -6,8 +6,10 @@ import math
 import time
 import os
 from datetime import datetime
+from api.helper.videoConvert import converter_video_para_browser
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.model.analise import ResultadoAnalise
+from django.conf import settings
 
 
 # ============================================================
@@ -196,9 +198,12 @@ class DetetorFaixaSimples:
 # PROCESSAMENTO DO VIDEO (COM CONTAGEM DE ALERTAS)
 # ============================================================
 
-def processar_video(caminho, denuncia, salvar_video=True):
+def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
 
     modelo = YOLO("yolov8n.pt")
+
+    if caminho and not os.path.isabs(caminho):
+        caminho = os.path.join(settings.MEDIA_ROOT, caminho)
 
     if caminho:
         cap = cv2.VideoCapture(caminho)
@@ -214,14 +219,15 @@ def processar_video(caminho, denuncia, salvar_video=True):
     # ===============================
     # CRIAR PASTA E VIDEO
     # ===============================
-    os.makedirs("videos_processados", exist_ok=True)
+    output_dir = os.path.join(settings.MEDIA_ROOT, "videos_processados")
+    os.makedirs(output_dir, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     if caminho:
         nome_base = os.path.splitext(os.path.basename(caminho))[0]
-        output_path = f"videos_processados/{nome_base}_velocidade_{timestamp}.mp4"
+        output_path = f"{output_dir}/{nome_base}_velocidade_{timestamp}.mp4"
     else:
-        output_path = f"videos_processados/webcam_velocidade_{timestamp}.mp4"
+        output_path = f"{output_dir}/webcam_velocidade_{timestamp}.mp4"
 
     largura = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     altura = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -241,27 +247,15 @@ def processar_video(caminho, denuncia, salvar_video=True):
     rastreador = RastreadorVeiculos()
     velocidade = CalculadorVelocidade()
     faixa = DetetorFaixaSimples()
-    detetor_excesso = DetetorExcessoVelocidade(60)
+    detetor_excesso = DetetorExcessoVelocidade(limite_kmh)
 
     velocidade.configurar_fps(fps_video)
 
     frame_num = 0
     start = time.time()
 
-    # Perguntar limite de velocidade
-    print("\n🚦 DEFINA O LIMITE DE VELOCIDADE")
-    try:
-        limite_input = input("Limite em km/h (padrão 60): ").strip()
-        if limite_input:
-            detetor_excesso.limite = float(limite_input)
-            print(f"   Limite definido: {detetor_excesso.limite} km/h")
-    except:
-        pass
-
-    print("\n🎬 PROCESSANDO... Comandos:")
-    print("   'q' - sair e salvar vídeo")
-    print("   's' - guardar screenshot")
-    print("   'd' - mostrar estatísticas")
+    print(f"\n🚦 Limite de velocidade: {detetor_excesso.limite} km/h")
+    print("\n🎬 PROCESSANDO (modo automático, sem interface gráfica)...")
     print("-"*50)
 
     while True:
@@ -354,34 +348,13 @@ def processar_video(caminho, denuncia, salvar_video=True):
         cv2.putText(frame, f"Limite: {detetor_excesso.limite} km/h", (frame.shape[1] - 200, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
 
-        # Instruções
-        cv2.putText(frame, "q-sair | s-screenshot | d-stats", (20, frame.shape[0] - 20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-
         # GUARDAR FRAME
         writer.write(frame)
 
-        cv2.imshow("Sistema de Velocidade", frame)
-
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
-        elif key == ord('s'):
-            screenshot_path = f"videos_processados/screenshot_velocidade_{frame_num}.jpg"
-            cv2.imwrite(screenshot_path, frame)
-            print(f"💾 Screenshot: {screenshot_path}")
-        elif key == ord('d'):
-            print(f"\n📊 ESTATÍSTICAS:")
-            print(f"   Frames processados: {frame_num}")
-            print(f"   FPS médio: {fps:.1f}")
-            print(f"   Veículos únicos: {rastreador.proximo_id}")
-            print(f"   Veículos em excesso agora: {excessos_frame}")
-            print(f"   TOTAL DE ALERTAS ENVIADOS: {detetor_excesso.get_total_alertas()}")
-            print(f"   Veículos que cometeram infração: {len(detetor_excesso.get_alertas_enviados())}")
-
     cap.release()
     writer.release()
-    cv2.destroyAllWindows()
+
+    video_browser = converter_video_para_browser(output_path)
 
     print(f"\n Processamento concluído!")
     print(f" Video salvo em: {output_path}")
@@ -389,7 +362,7 @@ def processar_video(caminho, denuncia, salvar_video=True):
     print(f"Veículos únicos: {rastreador.proximo_id}")
     alertas=detetor_excesso.get_total_alertas()
 
-    analise = ResultadoAnaliseService.executar_analise(denuncia, output_path, alertas)
+    analise = ResultadoAnaliseService.executar_analise(denuncia, video_browser or output_path, alertas)
 
     return analise
 
@@ -399,7 +372,7 @@ def processar_video(caminho, denuncia, salvar_video=True):
 # ============================================================
 
 def main_velocidade(path,denuncia):
-    
+
 
     analise = processar_video(path, denuncia, salvar_video=True)
     return analise
