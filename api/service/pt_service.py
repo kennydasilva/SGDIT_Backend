@@ -47,9 +47,8 @@ class PTService:
     
     @staticmethod
     def obter_pt(pt_id):
-        
 
-        return PT.objects.get(tilizador_id=pt_id)
+        return PT.objects.get(utilizador_id=pt_id)
     
     @staticmethod
     def actualizar_pt(pt_id, nome=None, numero_agente=None, localizacao=None):

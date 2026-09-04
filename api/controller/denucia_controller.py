@@ -24,23 +24,33 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.tasks.analise_task import processar_analise_async
 from api.helper.dataConvertion import formatar_data
+from api.pagination import PaginacaoPadrao
 
 class DenunciaViewSet(ViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+    pagination_class = PaginacaoPadrao
 
-    @swagger_auto_schema(
-        operation_description="Listar todas denuncias",
-        responses={200: "sucesso na requisicao"}
-    )
-    def list(self, request):
+    CAMPOS_ORDENACAO_VALIDOS = {"id", "data_registo", "estado", "matricula", "tipo_infracao"}
 
-        denuncias = DenunciaService.listar_denuncias()
-        
+    def _ordenar(self, queryset, request):
+        ordering = request.query_params.get("ordering", "-data_registo")
+        campo = ordering.lstrip("-")
 
-        
+        if campo not in self.CAMPOS_ORDENACAO_VALIDOS:
+            ordering = "-data_registo"
+
+        return queryset.order_by(ordering)
+
+    def _listar_paginado(self, request, denuncias):
+
+        denuncias = self._ordenar(denuncias, request)
+
+        paginator = self.pagination_class()
+        pagina = paginator.paginate_queryset(denuncias, request, view=self)
+
         data = []
 
-        for d in denuncias:
+        for d in pagina:
 
             resultadoAnalise = ResultadoAnaliseService.obter_por_denuncia(d.id)
             evidencia = EvidenciaService.obter_evidencia(d.id)
@@ -57,14 +67,19 @@ class DenunciaViewSet(ViewSet):
                 else None
             )
 
-
             data_captura_formatada = formatar_data(evidencia.data_captura) if evidencia else None
             data_analise_formatada = formatar_data(resultadoAnalise.data_analise) if resultadoAnalise else None
 
             data.append(DenunciaViewSet.preparar_denuncia(d, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada))
 
+        return paginator.get_paginated_response(data)
 
-        return Response(data)
+    @swagger_auto_schema(
+        operation_description="Listar todas denuncias (paginado; ?page=&page_size=&ordering=)",
+        responses={200: "sucesso na requisicao"}
+    )
+    def list(self, request):
+        return self._listar_paginado(request, DenunciaService.listar_denuncias())
 
 
         
@@ -228,118 +243,25 @@ class DenunciaViewSet(ViewSet):
         
 
     @swagger_auto_schema(
-        operation_description="Listar denuncias por cidadao"
+        operation_description="Listar denuncias por cidadao (paginado; ?page=&page_size=&ordering=)"
     )
     @action(detail=False, methods=["get"], url_path="cidadao/(?P<cidadao_id>[^/.]+)")
     def por_cidadao(self, request, cidadao_id=None):
-
-        denuncias = DenunciaService.listar_por_cidadao(cidadao_id)
-        
-
-        
-        data = []
-
-        for d in denuncias:
-
-            resultadoAnalise = ResultadoAnaliseService.obter_por_denuncia(d.id)
-            evidencia = EvidenciaService.obter_evidencia(d.id)
-
-            ficheiro_processado = (
-                resultadoAnalise.caminho_ficheiro_processado.url
-                if resultadoAnalise and resultadoAnalise.caminho_ficheiro_processado
-                else None
-            )
-
-            ficheiro_original = (
-                evidencia.caminho_ficheiro.url
-                if evidencia and evidencia.caminho_ficheiro
-                else None
-            )
-
-
-            data_captura_formatada = formatar_data(evidencia.data_captura) if evidencia else None
-            data_analise_formatada = formatar_data(resultadoAnalise.data_analise) if resultadoAnalise else None
-
-            data.append(DenunciaViewSet.preparar_denuncia(d, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada))
-
-        return Response(data)
-
-    
+        return self._listar_paginado(request, DenunciaService.listar_por_cidadao(cidadao_id))
 
     @swagger_auto_schema(
-        operation_description="Listar denuncias validadas"
+        operation_description="Listar denuncias validadas (paginado; ?page=&page_size=&ordering=)"
     )
     @action(detail=False, methods=["get"], url_path="pt/validadas")
     def por_validadas(self, request):
-
-        denuncias = DenunciaService.listar_denuncias_validadas()
-
-        
-        data = []
-
-        for d in denuncias:
-
-            
-                resultadoAnalise = ResultadoAnaliseService.obter_por_denuncia(d.id)
-                evidencia = EvidenciaService.obter_evidencia(d.id)
-
-                ficheiro_processado = (
-                    resultadoAnalise.caminho_ficheiro_processado.url
-                    if resultadoAnalise and resultadoAnalise.caminho_ficheiro_processado
-                    else None
-                )
-
-                ficheiro_original = (
-                    evidencia.caminho_ficheiro.url
-                    if evidencia and evidencia.caminho_ficheiro
-                    else None
-                )
-
-
-                data_captura_formatada = formatar_data(evidencia.data_captura) if evidencia else None
-                data_analise_formatada = formatar_data(resultadoAnalise.data_analise) if resultadoAnalise else None
-
-                data.append(DenunciaViewSet.preparar_denuncia(d, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada))
-                
-            
-        return Response(data)
-
-
+        return self._listar_paginado(request, DenunciaService.listar_denuncias_validadas())
 
     @swagger_auto_schema(
-        operation_description="Listar denuncias por PT"
+        operation_description="Listar denuncias por PT (paginado; ?page=&page_size=&ordering=)"
     )
     @action(detail=False, methods=["get"], url_path="pt/denuncias/(?P<pt_id>[^/.]+)")
     def por_pt(self, request, pt_id=None):
-
-        denuncias = DenunciaService.listar_por_pt(pt_id)
-        
-        data = []
-
-        for d in denuncias:
-
-            resultadoAnalise = ResultadoAnaliseService.obter_por_denuncia(d.id)
-            evidencia = EvidenciaService.obter_evidencia(d.id)
-
-            ficheiro_processado = (
-                resultadoAnalise.caminho_ficheiro_processado.url
-                if resultadoAnalise and resultadoAnalise.caminho_ficheiro_processado
-                else None
-            )
-
-            ficheiro_original = (
-                evidencia.caminho_ficheiro.url
-                if evidencia and evidencia.caminho_ficheiro
-                else None
-            )
-
-
-            data_captura_formatada = formatar_data(evidencia.data_captura) if evidencia else None
-            data_analise_formatada = formatar_data(resultadoAnalise.data_analise) if resultadoAnalise else None
-
-            data.append(DenunciaViewSet.preparar_denuncia(d, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada))
-
-        return Response(data)
+        return self._listar_paginado(request, DenunciaService.listar_por_pt(pt_id))
 
 
 

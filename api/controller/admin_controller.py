@@ -6,20 +6,24 @@ from api.service.admin_service import AdminService
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from api.serializers.user_serializer import CidadaoResponseSerializer, CriarAdminSerializer, AdminResponseSerializer
+from api.pagination import PaginacaoPadrao
 
 
 class AdminController(APIView):
-    
+
     permission_classes=[IsSuperAdmin]
 
     @swagger_auto_schema(
-            operation_description="Listar administradores",
+            operation_description="Listar administradores (paginado; ?page=&page_size=)",
             responses={200: AdminResponseSerializer(many=True)}
 
     )
     def get(self, request):
 
-        admins=AdminService.listar_admins()
+        admins=AdminService.listar_admins().select_related("utilizador").order_by("id")
+
+        paginator = PaginacaoPadrao()
+        pagina = paginator.paginate_queryset(admins, request, view=self)
 
         data=[
             {
@@ -28,10 +32,10 @@ class AdminController(APIView):
                 "email":a.utilizador.email,
                 "posto":a.posto
             }
-            for a in admins
+            for a in pagina
         ]
 
-        return Response(data)
+        return paginator.get_paginated_response(data)
     
     @swagger_auto_schema(
         operation_description="Criar administrador",
