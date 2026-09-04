@@ -2,7 +2,7 @@
 
 echo "A iniciar servicos"
 
-source .venv/bin/activate
+source venv/bin/activate
 
 
 echo "A iniciar redis"

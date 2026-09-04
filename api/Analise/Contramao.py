@@ -258,15 +258,16 @@ class DetetorFaixas:
         
         if linhas is not None:
             for linha in linhas:
-                x1, y1, x2, y2 = linha[0]
+                linha = np.asarray(linha).reshape(-1)
+                x1, y1, x2, y2 = linha
                 if x2 - x1 == 0:
                     continue
                 inclinacao = (y2 - y1) / (x2 - x1)
-                
+
                 if inclinacao < -0.3:
-                    linhas_esq.append(linha[0])
+                    linhas_esq.append(linha)
                 elif inclinacao > 0.3:
-                    linhas_dir.append(linha[0])
+                    linhas_dir.append(linha)
         
         if linhas_esq:
             self.faixa_esquerda = self._linha_media(linhas_esq, altura)
