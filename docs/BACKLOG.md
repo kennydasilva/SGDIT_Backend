@@ -27,6 +27,11 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 - **Frontend** — `src/utils/validationSchemas.ts` criado (regex/zod partilhados: nome, email, senha forte, telefone `+258 8XX XXX XXX` Moçambique, matrícula `AB-12-CD`, código legal, número de agente, posto, localização, descrição) e aplicado a `LoginPage`, `CidadaoPerfil`, `CriarDenuncia`, `Admin/Policias`, `SuperAdmin/Admins`, `PT/DetalhesDenunciaPt`. _(commits `67abc07`, `f984c40`)_
 - Removidos ficheiros mortos: `SignupPage.jsx`, `LoginService.js`, `validators.js` (vazios, substituídos pelo novo signup e `validationSchemas.ts`).
 - **Backend** — corrigidos `api/Analise/velocidade.py` e `api/Analise/parado.py`: removida toda a interação `cv2.imshow`/`cv2.waitKey`/`input()` (bloqueava/rebentava num worker Celery em background, sem ecrã nem terminal); caminhos de entrada/saída ancorados em `settings.MEDIA_ROOT`; vídeo convertido para formato compatível com browser (como já fazia `Contramao.py`); corrigido bug em `parado.py` onde o vídeo processado nunca era escrito (`out.write()`/`out.release()` em falta — ficheiro de saída ficava sempre vazio). _(commit `e8ef02f`)_
+- **Módulo Super Admin completo:**
+  - Backend: `SuperAdminViewSet` movido para `superadmin_controller.py` e registado em `api/urls.py` (nunca tinha estado ligado a nenhuma rota); corrigido bug em `listar_cidadaos` (loop usava `cidadao.id` da queryset em vez de `c.id`); novo `GET /cidadao/lista/` e `PATCH /cidadao/<id>/status/` (ativar/desativar); `GET /pts/` agora também acessível a `SUPER_ADMIN` (nova permissão `IsAdminOrSuperAdmin`); removido `evidencia_controller.py` (vazio, morto). _(commit `b0ac01c`)_
+  - Frontend: `superAdminService.ts` corrigido para os endpoints reais; `Cidadaos.tsx`, `Denuncias.tsx`, `Policiais.tsx` deixam de usar mock e passam a consumir dados reais, com loading/erro. _(commit `40b08e6`)_
+  - Limpeza: `AuthContext.jsx` (vazio, morto), `Admin/Policiais2.tsx` (stub mock morto), `alert()` de debug e import morto em `ptService.ts`. _(commit `c2bb321`)_
+  - `authService.refreshToken()` (caminho relativo errado) já tinha sido corrigido antes, junto com o signup. _(commit `67abc07`)_
 
 ### ⏳ Por fazer (identificado mas não priorizado ainda)
 
@@ -37,19 +42,7 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Notificação deve ser por **SMS**, o que requer integração com **Firebase** (Cloud Messaging / alguma extensão de SMS) — ainda não configurada no projeto.
   - Falta também decidir como determinar o "agente mais próximo": os PTs só têm um campo `localizacao` em texto livre (`api/model/user.py`), sem coordenadas GPS — precisa de desenho antes de implementar.
   - **Por implementar quando a integração Firebase/SMS estiver disponível.** (Tentativa inicial de algoritmo de deteção por vídeo foi feita e descartada nesta sessão, por não corresponder ao fluxo pretendido.)
-
-- **Módulo Super Admin** (pausado a pedido do utilizador para dar prioridade ao signup/recuperação de senha):
-  - `SuperAdminViewSet` (em `admin_controller.py`) não está registado em `api/urls.py`.
-  - Bug em `listar_cidadaos`: loop usa `cidadao.id` (a lista) em vez de `c.id` (o item).
-  - `api/controller/superadmin_controller.py` e `evidencia_controller.py` estão vazios (ficheiros mortos).
-  - Faltam endpoints de listagem global para o Super Admin (todos os PTs, todas as denúncias, todos os cidadãos) e ação de ativar/desativar cidadão.
-  - Frontend: `superAdminService.ts` chama rotas que não existem (`/cidadao/lista/`, `/pts/lista/`, `/denuncia/lista/`).
-  - Frontend: páginas `SuperAdmin/Cidadaos.tsx`, `Denuncias.tsx`, `Policiais.tsx` ainda usam dados mock.
-  - `Relatorios.tsx` (gráficos/analytics) não tem endpoint de agregação no backend — mock.
-- **Bugs/limpeza transversais no frontend:**
+- `Relatorios.tsx` (gráficos/analytics do Super Admin) não tem endpoint de agregação no backend — continua mock.
+- **Bugs/limpeza transversais no frontend ainda por fazer:**
   - `useAuth.isAuthenticated()` lê `localStorage.getItem("token")`, mas o login guarda a chave `"access"` — nunca autentica por essa via (afeta `ProtectedRoute.tsx`, que parece não estar em uso — `AppRoutes.tsx` usa `RouteGuard.tsx`).
-  - `authService.refreshToken()` usa caminho relativo errado (`/api/auth/token/refresh/`, que não existe); o correto é `/api/token/refresh/` (já certo no interceptor do `axios.ts`).
-  - `AuthContext.jsx` vazio e não importado em lado nenhum — ficheiro morto.
-  - `Admin/Policiais2.tsx` é um stub antigo com mock data, substituído por `Policias.tsx` — ficheiro morto.
-  - `ptService.ts` tem `alert()` de debug esquecidos em `listarPT` e `criarPT`.
   - Mistura de `.jsx`/`.tsx` num projeto TS (`Navbar.jsx`, `Sidebar.jsx`, `Home/index.jsx`, `colors.js`).
