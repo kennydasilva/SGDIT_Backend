@@ -9,6 +9,7 @@ from api.helper.videoConvert import converter_video_para_browser
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.model.analise import ResultadoAnalise
 from api.Analise.modelo import obter_modelo
+from api.helper.videoPreprocess import preprocessar_video
 from django.conf import settings
 import os
 
@@ -275,6 +276,11 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True,tempo_min_p
     if caminho_video and not os.path.isabs(caminho_video):
         caminho_video = os.path.join(settings.MEDIA_ROOT, caminho_video)
 
+    caminho_original = caminho_video
+
+    if caminho_video:
+        caminho_video = preprocessar_video(caminho_video)
+
     # Abrir vídeo
     if caminho_video:
         cap = cv2.VideoCapture(caminho_video)
@@ -511,6 +517,10 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True,tempo_min_p
     cap.release()
     if salvar_video:
         out.release()
+
+    if caminho_video != caminho_original and os.path.exists(caminho_video):
+        os.remove(caminho_video)
+
     log_file.close()
 
     video_browser = converter_video_para_browser(output_path) if salvar_video else None
