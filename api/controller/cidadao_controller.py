@@ -6,9 +6,13 @@ from api.service.cidadao_service import CidadaoService
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.viewsets import ViewSet
+from django.core.cache import cache
 from api.permissions.role_permissions import IsCidadao
 from api.serializers.user_serializer import CidadaoResponseSerializer
 from api.helper.dataConvertion import gerar_codigo_cidadao
+
+RANKING_CACHE_KEY = "cidadao_ranking_top10"
+RANKING_CACHE_TTL = 60
 
 
 class RegistarCidadaoController(APIView):
@@ -120,15 +124,20 @@ class CidadaoUserViewSet(ViewSet):
     @action(detail=False, methods=["get"], url_path="ranking")
     def ranking(self, request):
 
-        cidadaos = CidadaoService.listar_ranking(10)
+        data = cache.get(RANKING_CACHE_KEY)
 
-        data = [
-            {
-                "posicao": i + 1,
-                "codigo": gerar_codigo_cidadao(c.id),
-                "numero_denuncias": c.numero_denuncias,
-            }
-            for i, c in enumerate(cidadaos)
-        ]
+        if data is None:
+            cidadaos = CidadaoService.listar_ranking(10)
+
+            data = [
+                {
+                    "posicao": i + 1,
+                    "codigo": gerar_codigo_cidadao(c.id),
+                    "numero_denuncias": c.numero_denuncias,
+                }
+                for i, c in enumerate(cidadaos)
+            ]
+
+            cache.set(RANKING_CACHE_KEY, data, RANKING_CACHE_TTL)
 
         return Response(data)
