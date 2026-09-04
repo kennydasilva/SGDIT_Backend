@@ -26,14 +26,17 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 - **Frontend** — `LoginPage.tsx`: links para cadastro/recuperação via `Link` do react-router (antes `<a href>` morto, sem rota).
 - **Frontend** — `src/utils/validationSchemas.ts` criado (regex/zod partilhados: nome, email, senha forte, telefone `+258 8XX XXX XXX` Moçambique, matrícula `AB-12-CD`, código legal, número de agente, posto, localização, descrição) e aplicado a `LoginPage`, `CidadaoPerfil`, `CriarDenuncia`, `Admin/Policias`, `SuperAdmin/Admins`, `PT/DetalhesDenunciaPt`. _(commits `67abc07`, `f984c40`)_
 - Removidos ficheiros mortos: `SignupPage.jsx`, `LoginService.js`, `validators.js` (vazios, substituídos pelo novo signup e `validationSchemas.ts`).
-
-### 🔄 Em progresso
-
-- **Backend** — corrigir bugs nos algoritmos de análise de vídeo `api/Analise/velocidade.py` (excesso de velocidade) e `api/Analise/parado.py` (veículo parado) — apenas `Contramao.py` está a funcionar sem bugs, segundo teste do utilizador.
-- Adicionar novo tipo de denúncia: **acidente de viação** (novo algoritmo de deteção + suporte end-to-end backend/frontend).
-- Após as correções: analisar os 3(4) algoritmos de deteção e sugerir melhorias de desenho e otimização de tempo de processamento.
+- **Backend** — corrigidos `api/Analise/velocidade.py` e `api/Analise/parado.py`: removida toda a interação `cv2.imshow`/`cv2.waitKey`/`input()` (bloqueava/rebentava num worker Celery em background, sem ecrã nem terminal); caminhos de entrada/saída ancorados em `settings.MEDIA_ROOT`; vídeo convertido para formato compatível com browser (como já fazia `Contramao.py`); corrigido bug em `parado.py` onde o vídeo processado nunca era escrito (`out.write()`/`out.release()` em falta — ficheiro de saída ficava sempre vazio). _(commit `e8ef02f`)_
 
 ### ⏳ Por fazer (identificado mas não priorizado ainda)
+
+- Analisar os 3 algoritmos de deteção (`Contramao.py`, `parado.py`, `velocidade.py`) e sugerir melhorias de desenho e otimização do tempo de processamento (pedido pelo utilizador).
+- **Denúncia de "acidente de viação" (novo tipo) — decisão de desenho confirmada com o utilizador:**
+  - **Não** passa pelo pipeline de análise de vídeo por IA (ao contrário de Contramão/Parado/Velocidade) — não há tempo para análise neste caso.
+  - Fluxo correto: comunicação/reporte **direto** ao agente (PT) mais próximo.
+  - Notificação deve ser por **SMS**, o que requer integração com **Firebase** (Cloud Messaging / alguma extensão de SMS) — ainda não configurada no projeto.
+  - Falta também decidir como determinar o "agente mais próximo": os PTs só têm um campo `localizacao` em texto livre (`api/model/user.py`), sem coordenadas GPS — precisa de desenho antes de implementar.
+  - **Por implementar quando a integração Firebase/SMS estiver disponível.** (Tentativa inicial de algoritmo de deteção por vídeo foi feita e descartada nesta sessão, por não corresponder ao fluxo pretendido.)
 
 - **Módulo Super Admin** (pausado a pedido do utilizador para dar prioridade ao signup/recuperação de senha):
   - `SuperAdminViewSet` (em `admin_controller.py`) não está registado em `api/urls.py`.
