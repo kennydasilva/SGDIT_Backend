@@ -423,17 +423,25 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
         faixa_esq, faixa_dir, centro_via = faixas.processar(frame)
         
         # Detetar veículos
-        resultados = modelo(frame_pequeno, classes=[2, 3, 5, 7])
-        
+        try:
+            resultados = modelo(frame_pequeno, classes=[2, 3, 5, 7])
+        except Exception as e:
+            print(f"⚠️ Erro ao processar frame {frame_count}, a saltar: {e}")
+            resultados = None
+
         # Extrair deteções
         detecoes = []
         if resultados and len(resultados) > 0:
 
             for det in resultados[0]:
+                confianca = float(det.boxes.conf[0].cpu().numpy())
+
+                if confianca < 0.4:
+                    continue
+
                 x1, y1, x2, y2 = det.boxes.xyxy[0].cpu().numpy().astype(int)
                 classe_id = int(det.boxes.cls[0].cpu().numpy())
-                confianca = float(det.boxes.conf[0].cpu().numpy())
-                
+
                 x1 = int(x1 * escala_x)
                 y1 = int(y1 * escala_y)
                 x2 = int(x2 * escala_x)
