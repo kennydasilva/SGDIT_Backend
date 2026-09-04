@@ -35,7 +35,7 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 
 ### ⏳ Por fazer (identificado mas não priorizado ainda)
 
-- Analisar os 3 algoritmos de deteção (`Contramao.py`, `parado.py`, `velocidade.py`) e sugerir melhorias de desenho e otimização do tempo de processamento (pedido pelo utilizador).
+- Análise dos 3 algoritmos de deteção feita e registada em [`docs/ANALISE_ALGORITMOS_VIDEO.md`](ANALISE_ALGORITMOS_VIDEO.md) — nenhuma sugestão aplicada ainda, por priorizar/discutir.
 - **Denúncia de "acidente de viação" (novo tipo) — decisão de desenho confirmada com o utilizador:**
   - **Não** passa pelo pipeline de análise de vídeo por IA (ao contrário de Contramão/Parado/Velocidade) — não há tempo para análise neste caso.
   - Fluxo correto: comunicação/reporte **direto** ao agente (PT) mais próximo.
