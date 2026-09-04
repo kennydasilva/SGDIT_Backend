@@ -9,6 +9,7 @@ from datetime import datetime
 from api.helper.videoConvert import converter_video_para_browser
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.model.analise import ResultadoAnalise
+from api.Analise.modelo import obter_modelo
 from django.conf import settings
 
 
@@ -202,7 +203,7 @@ class DetetorFaixaSimples:
 
 def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
 
-    modelo = YOLO("yolov8n.pt")
+    modelo = obter_modelo()
 
     if caminho and not os.path.isabs(caminho):
         caminho = os.path.join(settings.MEDIA_ROOT, caminho)
@@ -272,8 +273,15 @@ def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
         largura_pixels = faixa.calcular_largura_via(frame)
         velocidade.auto_calibrar(largura_pixels)
 
+        # Deteção em resolução reduzida (mesmo padrão de Contramao.py/parado.py) —
+        # YOLO em CPU é o maior custo de tempo; detetar a full-res não traz mais
+        # precisão que compense o tempo extra
+        frame_pequeno = cv2.resize(frame, (640, 360))
+        escala_x = frame.shape[1] / 640
+        escala_y = frame.shape[0] / 360
+
         try:
-            resultados = modelo(frame, classes=[2, 3, 5, 7])
+            resultados = modelo(frame_pequeno, classes=[2, 3, 5, 7])
         except Exception as e:
             print(f"⚠️ Erro ao processar frame {frame_num}, a saltar: {e}")
             resultados = None
@@ -288,6 +296,12 @@ def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
                     continue
 
                 x1, y1, x2, y2 = r.boxes.xyxy[0].cpu().numpy().astype(int)
+
+                x1 = int(x1 * escala_x)
+                y1 = int(y1 * escala_y)
+                x2 = int(x2 * escala_x)
+                y2 = int(y2 * escala_y)
+
                 cx = (x1 + x2) // 2
                 cy = (y1 + y2) // 2
 

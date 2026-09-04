@@ -8,6 +8,7 @@ from datetime import datetime
 from api.helper.videoConvert import converter_video_para_browser
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.model.analise import ResultadoAnalise
+from api.Analise.modelo import obter_modelo
 from django.conf import settings
 import os
 
@@ -269,7 +270,7 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True,tempo_min_p
     print("="*60)
 
     # Carregar modelo
-    modelo = YOLO('yolov8n.pt')
+    modelo = obter_modelo()
 
     if caminho_video and not os.path.isabs(caminho_video):
         caminho_video = os.path.join(settings.MEDIA_ROOT, caminho_video)

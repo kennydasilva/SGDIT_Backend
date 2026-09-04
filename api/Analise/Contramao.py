@@ -9,6 +9,7 @@ import os
 from api.helper.videoConvert import converter_video_para_browser
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.model.analise import ResultadoAnalise
+from api.Analise.modelo import obter_modelo
 from django.conf import settings
 
 # ============================================
@@ -332,7 +333,7 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
    
     
     
-    modelo = YOLO('yolov8n.pt')
+    modelo = obter_modelo()
 
     if not os.path.isabs(caminho_video):
         caminho_video = os.path.join(settings.MEDIA_ROOT, caminho_video)
