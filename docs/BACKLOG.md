@@ -51,11 +51,15 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - `select_related('utilizador')` adicionado onde faltava (evita N+1 queries) em cidadãos/PTs/admins.
   - Corrigido bug real encontrado de caminho: `PTService.obter_pt` tinha `tilizador_id` (erro de escrita) em vez de `utilizador_id` — rebentava sempre que um PT via o próprio perfil.
   - Frontend: todos os serviços que consomem estes endpoints (`denunciaService`, `superAdminService`, `ptService`) atualizados para extrair `.results`; páginas continuam a mostrar a primeira página (20 itens) sem alterações visuais — **ainda falta UI de navegação entre páginas** (botões Seguinte/Anterior) se/quando as listas começarem a passar de 20 itens. _(commits `4bcc08f` backend / `bdebe22` frontend)_
+- **Cache com Redis para reduzir latência da base de dados** (pedido do utilizador):
+  - Backend: `CACHES` configurado com `django_redis` (dependência já estava no `requirements.txt`, nunca tinha sido ligada), base de dados Redis separada (1) da usada pelo Celery (0). `GET /cidadao/user/ranking/` cacheado 60s. Testado: 1ª chamada faz 1 query SQL, 2ª chamada (dentro do TTL) faz 0 queries. _(commit `300eece`)_
+  - Frontend: cache leve em memória (`httpCache.ts`, TTL 30s) aplicado ao ranking e às listagens de cidadãos/PTs/admins do Super Admin — evita até o pedido de rede, não só a query à BD. Mutações (criar/editar/apagar admin ou PT, ativar/desativar cidadão) invalidam o cache correspondente. _(commit `627fe77`)_
+  - **Decisão deliberada:** listagens de denúncias ficam fora de ambos os caches — um PT precisa sempre do estado mais recente; cache traria risco de mostrar dados desatualizados numa decisão operacional.
 
 ### ⏳ Por fazer (identificado mas não priorizado ainda)
 
 - **UI de paginação no frontend** (botões Seguinte/Anterior/contagem) — o backend já pagina, o frontend ainda só consome a primeira página.
-- **Cache com Redis para reduzir latência da base de dados** (pedido do utilizador, próxima etapa) — Redis já está no projeto como broker do Celery (`CELERY_BROKER_URL`), pode reutilizar-se como cache de leitura (ex: `django-redis`) para queries repetidas/pesadas (listagens, dashboards).
+- ~~Reconhecimento automático de matrícula (ALPR/OCR)~~ — **rejeitado pelo utilizador** (2026-09-04): a qualidade da câmara do telemóvel do cidadão é demasiado variável/imprevisível para dar leituras fiáveis; geraria falsos negativos constantes e falsa expectativa de verificação automática. Não avançar.
 - ~~Reconhecimento automático de matrícula (ALPR/OCR)~~ — **rejeitado pelo utilizador** (2026-09-04): a qualidade da câmara do telemóvel do cidadão é demasiado variável/imprevisível para dar leituras fiáveis; geraria falsos negativos constantes e falsa expectativa de verificação automática. Não avançar.
 - **Geolocalização nas denúncias** (lat/lng capturada no telemóvel do cidadão ao criar a denúncia, em vez de só texto livre em `localizacao`). Desbloqueia um mapa real de infrações para Super Admin/PT e resolve o "agente mais próximo" pendente para o SMS de acidente de viação (ver item abaixo). Custo: migração no modelo, pedir permissão de localização no browser, lib de mapas (Leaflet, sem chave paga).
 - Análise dos 3 algoritmos de deteção feita e registada em [`docs/ANALISE_ALGORITMOS_VIDEO.md`](ANALISE_ALGORITMOS_VIDEO.md) — nenhuma sugestão aplicada ainda, por priorizar/discutir.
