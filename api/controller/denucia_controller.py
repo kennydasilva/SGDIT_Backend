@@ -125,20 +125,11 @@ class DenunciaViewSet(ViewSet):
     )
     def create(self, request):
         from rest_framework.parsers import MultiPartParser, FormParser
+        from django.conf import settings
 
         try:
-            
-            denuncia = DenunciaService.criar_denuncia(
-                request.data.get("cidadao_id"),
-                request.data.get("matricula"),
-                request.data.get("descricao"),
-                request.data.get("tipo_infracao"),
-                request.data.get("localizacao"),
-                request.data.get("sentido_direccao")
-            )
 
             sentido_direccao = request.data.get("sentido_direccao")
-
 
             ficheiro = request.FILES.get("caminho_ficheiro")
 
@@ -148,7 +139,22 @@ class DenunciaViewSet(ViewSet):
             if not ficheiro.name.endswith(('.mp4', '.avi', '.mov')):
                 return Response({"error": "Formato inválido"}, status=400)
 
-            
+            max_size_mb = getattr(settings, "DENUNCIA_VIDEO_MAX_SIZE_MB", 100)
+            if ficheiro.size > max_size_mb * 1024 * 1024:
+                return Response(
+                    {"error": f"Vídeo demasiado grande (máximo {max_size_mb}MB). Reduza a duração ou a qualidade do vídeo."},
+                    status=400
+                )
+
+            denuncia = DenunciaService.criar_denuncia(
+                request.data.get("cidadao_id"),
+                request.data.get("matricula"),
+                request.data.get("descricao"),
+                request.data.get("tipo_infracao"),
+                request.data.get("localizacao"),
+                request.data.get("sentido_direccao")
+            )
+
             evidencia = EvidenciaService.criar_evidencia(denuncia, ficheiro)
 
             
