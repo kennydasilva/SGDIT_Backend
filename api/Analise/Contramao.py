@@ -183,7 +183,8 @@ class RastreadorVeiculos:
                 dados['ultimo_frame'] = frame_num
                 dados['classe'] = melhor_det['classe']
                 dados['bbox'] = melhor_det['bbox']
-                
+                dados['confianca'] = melhor_det.get('confianca', dados.get('confianca', 0))
+
                 veiculos_atuais.append(veiculo_id)
                 detecoes_associadas.add(melhor_idx)
         
@@ -198,7 +199,8 @@ class RastreadorVeiculos:
                     'ultimo_frame': frame_num,
                     'primeiro_frame': frame_num,
                     'classe': det['classe'],
-                    'bbox': det['bbox']
+                    'bbox': det['bbox'],
+                    'confianca': det.get('confianca', 0)
                 }
                 
                 self.cores[novo_id] = (
@@ -396,11 +398,12 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
     # Configurações
     frame_count = 0
     start_time = time.time()
-    
+    confiancas_alertas = []
+
     # Log
     log_file = open(f"{output_dir}/contramao_log_{timestamp}.csv", "w")
     log_file.write("timestamp,frame,id,x,y,classe,direcao,em_contramao,tempo_infracao\n")
-    
+
     
     
     while True:
@@ -495,6 +498,7 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
                 if veiculo_id not in detetor_contramao.alertas_enviados:
                     screenshot_path = f"{output_dir}/contramao_id{veiculo_id}_frame{frame_count}.jpg"
                     cv2.imwrite(screenshot_path, frame)
+                    confiancas_alertas.append(dados.get('confianca', 0))
                     detetor_contramao.registrar_alerta(veiculo_id, frame_count, screenshot_path)
             
             # Guardar log
@@ -590,9 +594,9 @@ def processar_video_contramao(caminho_video, denuncia, sentido_direccao, salvar_
     print(f" Log: {output_dir}/contramao_log_{timestamp}.csv")
     print(f" Veículos únicos: {rastreador.proximo_id}")
     alertas=len(detetor_contramao.alertas_enviados)
+    confianca_final = round(sum(confiancas_alertas) / len(confiancas_alertas), 2) if confiancas_alertas else 0.5
 
-
-    analise = ResultadoAnaliseService.executar_analise(denuncia, video_browser, alertas)
+    analise = ResultadoAnaliseService.executar_analise(denuncia, video_browser, alertas, confianca_final)
 
     return analise
     

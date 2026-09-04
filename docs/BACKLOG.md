@@ -32,9 +32,13 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Frontend: `superAdminService.ts` corrigido para os endpoints reais; `Cidadaos.tsx`, `Denuncias.tsx`, `Policiais.tsx` deixam de usar mock e passam a consumir dados reais, com loading/erro. _(commit `40b08e6`)_
   - Limpeza: `AuthContext.jsx` (vazio, morto), `Admin/Policiais2.tsx` (stub mock morto), `alert()` de debug e import morto em `ptService.ts`. _(commit `c2bb321`)_
   - `authService.refreshToken()` (caminho relativo errado) já tinha sido corrigido antes, junto com o signup. _(commit `67abc07`)_
+- **Confiança real na análise de vídeo** (antes fixa em `0.85` sempre, independentemente do resultado): `ResultadoAnaliseService.executar_analise` passa a receber `confianca` calculada a partir da confiança média das deteções YOLO nos veículos que geraram alerta (ou `0.5` quando não há alerta — neutro, sem evidência positiva nem negativa). Aplicado a `Contramao.py`, `velocidade.py` e `parado.py`.
+- **Bug crítico corrigido em `parado.py`:** o alerta de "veículo parado" só disparava com `esta_parado AND em_zona`, mas zonas proibidas só podiam ser definidas interativamente com o rato — impossível em modo headless (worker Celery). Ou seja, a deteção de veículo parado nunca validava nenhuma denúncia em produção. Alerta passa a disparar por `esta_parado` sozinho (zona passa a ser informativa, não obrigatória).
 
 ### ⏳ Por fazer (identificado mas não priorizado ainda)
 
+- **Reconhecimento automático de matrícula (ALPR/OCR)** sobre o recorte do veículo detetado, para cruzar com a matrícula que o cidadão escreve manualmente na denúncia — hoje não há nenhuma verificação, o sistema confia cegamente no texto introduzido. Custo: mais um modelo a correr por frame (impacto direto no tempo de processamento, ver `ANALISE_ALGORITMOS_VIDEO.md`).
+- **Geolocalização nas denúncias** (lat/lng capturada no telemóvel do cidadão ao criar a denúncia, em vez de só texto livre em `localizacao`). Desbloqueia um mapa real de infrações para Super Admin/PT e resolve o "agente mais próximo" pendente para o SMS de acidente de viação (ver item abaixo). Custo: migração no modelo, pedir permissão de localização no browser, lib de mapas (Leaflet, sem chave paga).
 - Análise dos 3 algoritmos de deteção feita e registada em [`docs/ANALISE_ALGORITMOS_VIDEO.md`](ANALISE_ALGORITMOS_VIDEO.md) — nenhuma sugestão aplicada ainda, por priorizar/discutir.
 - **Denúncia de "acidente de viação" (novo tipo) — decisão de desenho confirmada com o utilizador:**
   - **Não** passa pelo pipeline de análise de vídeo por IA (ao contrário de Contramão/Parado/Velocidade) — não há tempo para análise neste caso.

@@ -60,6 +60,7 @@ class RastreadorVeiculos:
                 dados["ultimo_centro"] = centro
                 dados["bbox"] = det["bbox"]
                 dados["ultimo_frame"] = frame_num
+                dados["confianca"] = det.get("confianca", dados.get("confianca", 0))
 
                 veiculos_ativos.append(vid)
 
@@ -75,7 +76,8 @@ class RastreadorVeiculos:
                     "centros": deque([det["centro"]], maxlen=self.max_historico),
                     "ultimo_centro": det["centro"],
                     "bbox": det["bbox"],
-                    "ultimo_frame": frame_num
+                    "ultimo_frame": frame_num,
+                    "confianca": det.get("confianca", 0)
                 }
 
                 veiculos_ativos.append(vid)
@@ -253,6 +255,7 @@ def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
 
     frame_num = 0
     start = time.time()
+    confiancas_alertas = []
 
     print(f"\n🚦 Limite de velocidade: {detetor_excesso.limite} km/h")
     print("\n🎬 PROCESSANDO (modo automático, sem interface gráfica)...")
@@ -285,7 +288,8 @@ def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
 
             detecoes.append({
                 "centro": (cx, cy),
-                "bbox": (x1, y1, x2, y2)
+                "bbox": (x1, y1, x2, y2),
+                "confianca": conf
             })
 
         ativos = rastreador.atualizar(detecoes, frame_num)
@@ -301,7 +305,11 @@ def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
 
             centros = list(dados["centros"])
             vel = velocidade.calcular(centros)
+            total_antes = len(detetor_excesso.alertas_enviados)
             excesso = detetor_excesso.verificar(vid, vel, frame_num)
+
+            if len(detetor_excesso.alertas_enviados) > total_antes:
+                confiancas_alertas.append(dados.get("confianca", 0))
 
             if excesso:
                 excessos_frame += 1
@@ -361,8 +369,9 @@ def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
     print(f" TOTAL DE ALERTAS DE EXCESSO DE VELOCIDADE: {detetor_excesso.get_total_alertas()}")
     print(f"Veículos únicos: {rastreador.proximo_id}")
     alertas=detetor_excesso.get_total_alertas()
+    confianca_final = round(sum(confiancas_alertas) / len(confiancas_alertas), 2) if confiancas_alertas else 0.5
 
-    analise = ResultadoAnaliseService.executar_analise(denuncia, video_browser or output_path, alertas)
+    analise = ResultadoAnaliseService.executar_analise(denuncia, video_browser or output_path, alertas, confianca_final)
 
     return analise
 

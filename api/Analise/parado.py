@@ -83,6 +83,7 @@ class RastreadorParados:
                 dados['ultimo_timestamp'] = timestamp
                 dados['classe'] = melhor_det['classe']
                 dados['bbox'] = melhor_det['bbox']
+                dados['confianca'] = melhor_det.get('confianca', dados.get('confianca', 0))
 
                 # Atualizar movimento
                 dados['movimento'] = self._calcular_movimento(dados['centros'])
@@ -110,7 +111,8 @@ class RastreadorParados:
                     'bbox': det['bbox'],
                     'movimento': 0,
                     'tempo_parado': 0,
-                    'alerta_enviado': False
+                    'alerta_enviado': False,
+                    'confianca': det.get('confianca', 0)
                 }
 
                 self.cores[novo_id] = (
@@ -335,6 +337,7 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True,tempo_min_p
 
     # Alertas já enviados
     alertas_enviados = set()
+    confiancas_alertas = []
 
     print("\n PROCESSANDO (modo automático, sem interface gráfica)...")
     print("-"*50)
@@ -421,13 +424,16 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True,tempo_min_p
                           f"{ultimo_centro[0]},{ultimo_centro[1]},{dados['classe']},"
                           f"{tempo_parado:.1f},{1 if em_zona else 0}\n")
             
-            # ALERTA: Veículo parado em zona proibida
-            if esta_parado and em_zona and veiculo_id not in alertas_enviados:
+            # ALERTA: Veículo parado tempo suficiente (zona proibida é agravante,
+            # não requisito — sem zonas configuráveis em modo headless, exigir
+            # em_zona faria com que este alerta nunca disparasse)
+            if esta_parado and veiculo_id not in alertas_enviados:
                 alertas_enviados.add(veiculo_id)
-                print(f"\n  ALERTA! Veículo {veiculo_id} parado em {nome_zona}")
+                confiancas_alertas.append(dados.get('confianca', 0))
+                print(f"\n  ALERTA! Veículo {veiculo_id} parado" + (f" em {nome_zona}" if em_zona else ""))
                 print(f"   Tempo parado: {tempo_parado:.1f} segundos")
                 print(f"   Posição: {ultimo_centro}")
-                
+
                 # Guardar screenshot do alerta
                 screenshot_path = f"{output_dir}/alerta_parado_{veiculo_id}_{frame_count}.jpg"
                 cv2.imwrite(screenshot_path, frame)
@@ -504,8 +510,9 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True,tempo_min_p
     print(f" Total frames: {frame_count}")
     print(f" Veículos únicos: {rastreador.proximo_id}")
     alertas=len(alertas_enviados)
+    confianca_final = round(sum(confiancas_alertas) / len(confiancas_alertas), 2) if confiancas_alertas else 0.5
 
-    analise = ResultadoAnaliseService.executar_analise(denuncia, video_browser or output_path, alertas)
+    analise = ResultadoAnaliseService.executar_analise(denuncia, video_browser or output_path, alertas, confianca_final)
 
     return analise
 
