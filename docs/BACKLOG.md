@@ -44,11 +44,18 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Vídeo final também mais leve: `preset veryfast`, `crf 27`, largura máxima 1280px — é vídeo de revisão/evidência, não precisa da resolução/bitrate nativos do telemóvel. _(commit `c51f24d`)_
   - **Testado ponta-a-ponta** com vídeo e denúncia reais (`Contramao.py`, o módulo mais sensível): alertas dispararam corretamente, confiança calculada (0.61), vídeo final gerado, ficheiro temporário de pré-processamento limpo automaticamente.
   - Por fazer ainda (mencionado na análise, não implementado): frame-skipping dentro do loop e tracker partilhado único entre os 3 módulos — ficam para decisão futura, tocam na lógica central de deteção.
+- **Paginação e ordenação nos endpoints de listagem** (pedido do utilizador):
+  - Nova `api/pagination.py` (`PaginacaoPadrao`, 20/página, máx. 100 via `?page_size=`), configurada como paginação DEFAULT do DRF.
+  - Aplicada a `/denuncias/` (+ `cidadao/<id>`, `pt/validadas/`, `pt/denuncias/<id>`), `/cidadao/lista/`, `/pts/` (+ `admin/<id>`), `/admins/` — respostas passam a `{count, next, previous, results}`.
+  - `DenunciaViewSet`: extraído `_listar_paginado()` partilhado, eliminando ~150 linhas duplicadas entre as 4 ações de listagem; suporte a `?ordering=` com lista branca de campos.
+  - `select_related('utilizador')` adicionado onde faltava (evita N+1 queries) em cidadãos/PTs/admins.
+  - Corrigido bug real encontrado de caminho: `PTService.obter_pt` tinha `tilizador_id` (erro de escrita) em vez de `utilizador_id` — rebentava sempre que um PT via o próprio perfil.
+  - Frontend: todos os serviços que consomem estes endpoints (`denunciaService`, `superAdminService`, `ptService`) atualizados para extrair `.results`; páginas continuam a mostrar a primeira página (20 itens) sem alterações visuais — **ainda falta UI de navegação entre páginas** (botões Seguinte/Anterior) se/quando as listas começarem a passar de 20 itens. _(commits `4bcc08f` backend / `bdebe22` frontend)_
 
 ### ⏳ Por fazer (identificado mas não priorizado ainda)
 
-- **Paginação e ordenação nos endpoints de listagem** (pedido do utilizador, próxima etapa) — hoje `listar_denuncias`, `listar_cidadaos`, `listar_pts`, etc. devolvem tudo de uma vez, sem paginação nem ordenação configurável. Vai crescer mal à medida que a base de dados de denúncias aumentar.
-- **Cache com Redis para reduzir latência da base de dados** (pedido do utilizador, depois da paginação) — Redis já está no projeto como broker do Celery (`CELERY_BROKER_URL`), pode reutilizar-se como cache de leitura (ex: `django-redis`) para queries repetidas/pesadas (listagens, dashboards).
+- **UI de paginação no frontend** (botões Seguinte/Anterior/contagem) — o backend já pagina, o frontend ainda só consome a primeira página.
+- **Cache com Redis para reduzir latência da base de dados** (pedido do utilizador, próxima etapa) — Redis já está no projeto como broker do Celery (`CELERY_BROKER_URL`), pode reutilizar-se como cache de leitura (ex: `django-redis`) para queries repetidas/pesadas (listagens, dashboards).
 - ~~Reconhecimento automático de matrícula (ALPR/OCR)~~ — **rejeitado pelo utilizador** (2026-09-04): a qualidade da câmara do telemóvel do cidadão é demasiado variável/imprevisível para dar leituras fiáveis; geraria falsos negativos constantes e falsa expectativa de verificação automática. Não avançar.
 - **Geolocalização nas denúncias** (lat/lng capturada no telemóvel do cidadão ao criar a denúncia, em vez de só texto livre em `localizacao`). Desbloqueia um mapa real de infrações para Super Admin/PT e resolve o "agente mais próximo" pendente para o SMS de acidente de viação (ver item abaixo). Custo: migração no modelo, pedir permissão de localização no browser, lib de mapas (Leaflet, sem chave paga).
 - Análise dos 3 algoritmos de deteção feita e registada em [`docs/ANALISE_ALGORITMOS_VIDEO.md`](ANALISE_ALGORITMOS_VIDEO.md) — nenhuma sugestão aplicada ainda, por priorizar/discutir.
