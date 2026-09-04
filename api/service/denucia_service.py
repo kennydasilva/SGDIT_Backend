@@ -51,6 +51,9 @@ class DenunciaService:
             codigo_legal=""
         )
 
+        cidadao.numero_denuncias += 1
+        cidadao.save()
+
         return denuncia
 
     @staticmethod

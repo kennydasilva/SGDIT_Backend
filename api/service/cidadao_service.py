@@ -52,4 +52,9 @@ class CidadaoService:
 
         return Cidadao.objects.all()
 
+    @staticmethod
+    def listar_ranking(limite=10):
+
+        return Cidadao.objects.order_by("-numero_denuncias")[:limite]
+
 

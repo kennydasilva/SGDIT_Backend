@@ -1,13 +1,14 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from schemathesis.hooks import action
+from rest_framework.decorators import action
 from api.service.cidadao_service import CidadaoService
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.viewsets import ViewSet
 from api.permissions.role_permissions import IsCidadao
 from api.serializers.user_serializer import CidadaoResponseSerializer
+from api.helper.dataConvertion import gerar_codigo_cidadao
 
 
 class RegistarCidadaoController(APIView):
@@ -88,7 +89,8 @@ class CidadaoUserViewSet(ViewSet):
             "email": cidadao.utilizador.email,
             "data_registo": cidadao.utilizador.data_registo,
             "numero": cidadao.utilizador.numero,
-            
+            "numero_denuncias": cidadao.numero_denuncias,
+            "codigo_ranking": gerar_codigo_cidadao(cidadao.id),
         }
 
         return Response(data)
@@ -111,6 +113,22 @@ class CidadaoUserViewSet(ViewSet):
         )
 
         return Response({"message": "PT actualizado"})
-    
 
-   
+    @swagger_auto_schema(
+        operation_description="Ranking anónimo dos cidadãos mais ativos (por número de denúncias)"
+    )
+    @action(detail=False, methods=["get"], url_path="ranking")
+    def ranking(self, request):
+
+        cidadaos = CidadaoService.listar_ranking(10)
+
+        data = [
+            {
+                "posicao": i + 1,
+                "codigo": gerar_codigo_cidadao(c.id),
+                "numero_denuncias": c.numero_denuncias,
+            }
+            for i, c in enumerate(cidadaos)
+        ]
+
+        return Response(data)
