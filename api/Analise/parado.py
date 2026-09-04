@@ -5,6 +5,7 @@ from collections import defaultdict, deque
 import math
 import time
 from datetime import datetime
+from api.helper.videoConvert import converter_video_para_browser
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.model.analise import ResultadoAnalise
 from django.conf import settings
@@ -256,7 +257,7 @@ class ZonasProibidas:
 # PARTE 3: PROCESSAMENTO PRINCIPAL
 # ============================================
 
-def processar_video_parados(caminho_video,denuncia,salvar_video=True):
+def processar_video_parados(caminho_video,denuncia,salvar_video=True,tempo_min_parado=10):
     """
     Processa vídeo detetando veículos parados
     """
@@ -264,10 +265,13 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True):
     print("  DETEÇÃO DE VEÍCULOS PARADOS")
 
     print("="*60)
-    
+
     # Carregar modelo
     modelo = YOLO('yolov8n.pt')
-    
+
+    if caminho_video and not os.path.isabs(caminho_video):
+        caminho_video = os.path.join(settings.MEDIA_ROOT, caminho_video)
+
     # Abrir vídeo
     if caminho_video:
         cap = cv2.VideoCapture(caminho_video)
@@ -300,13 +304,14 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True):
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_path, fourcc, fps, (largura, altura))
-    
+
     # Inicializar rastreador
     rastreador = RastreadorParados(max_historico=100, fps=fps)
-    
+    rastreador.tempo_min_parado = tempo_min_parado
+
     #  CORREÇÃO: Ler primeiro frame corretamente
     ret, primeiro_frame = cap.read()
-    
+
     if ret and primeiro_frame is not None:
         zonas = ZonasProibidas(primeiro_frame.shape)
         # Voltar ao início
@@ -314,87 +319,26 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True):
     else:
         print(" Não foi possível ler o primeiro frame!")
         return
-    
-    # Perguntar se quer definir zonas
-    print("\n DESEJA DEFINIR ZONAS PROIBIDAS?")
-    print("   1 - Sim (desenhar zonas com o rato)")
-    print("   2 - Não (apenas detetar veículos parados em qualquer lugar)")
-    definir_zonas = input("   Opção: ").strip()
-    
-    if definir_zonas == '1':
-        # Variáveis para desenho
-        desenhando = False
-        ponto_inicio = None
-        
-        def mouse_callback(event, x, y, flags, param):
-            nonlocal desenhando, ponto_inicio
-            
-            if event == cv2.EVENT_LBUTTONDOWN:
-                desenhando = True
-                ponto_inicio = (x, y)
-                
-            elif event == cv2.EVENT_LBUTTONUP and desenhando:
-                desenhando = False
-                if ponto_inicio:
-                    x1, y1 = ponto_inicio
-                    x2, y2 = x, y
-                    # Garantir que x1 < x2 e y1 < y2
-                    x1, x2 = min(x1, x2), max(x1, x2)
-                    y1, y2 = min(y1, y2), max(y1, y2)
-                    zonas.adicionar_zona_retangular(x1, y1, x2, y2, f"Zona {len(zonas.zonas)+1}")
-                    print(f" Zona retangular adicionada: ({x1},{y1}) a ({x2},{y2})")
-        
-        cv2.namedWindow('Definir Zonas - Clique e arraste')
-        cv2.setMouseCallback('Definir Zonas - Clique e arraste', mouse_callback)
-        
-        print("\n  INSTRUÇÕES:")
-        print("   Clique e arraste para criar uma zona retangular")
-        print("   Pressione 'q' quando terminar")
-        
-        frame_temp = primeiro_frame.copy()
-        
-        while True:
-            frame_display = frame_temp.copy()
-            
-            # Desenhar zona em progresso
-            if desenhando and ponto_inicio:
-                x1, y1 = ponto_inicio
-                cv2.rectangle(frame_display, (x1, y1), (x, y), (0, 255, 0), 2)
-            
-            # Desenhar zonas já criadas
-            for zona in zonas.zonas:
-                cv2.polylines(frame_display, [zona['pontos']], True, zona['cor'], 2)
-            
-            cv2.putText(frame_display, "Clique e arraste para criar zona. Pressione 'q' para sair", 
-                       (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-            
-            cv2.imshow('Definir Zonas - Clique e arraste', frame_display)
-            key = cv2.waitKey(1) & 0xFF
-            
-            if key == ord('q'):
-                break
-        
-        cv2.destroyWindow('Definir Zonas - Clique e arraste')
-        print(f"\n {len(zonas.zonas)} zonas definidas")
-    
+
+    # Nota: deteção limitada a "veículo parado em qualquer lugar" (sem zonas
+    # proibidas) — a definição interativa de zonas com o rato não é possível
+    # num processo em background (worker Celery, sem ecrã nem input do utilizador).
+
     # Configurações
     frame_count = 0
     start_time = time.time()
-    
+
     # Log
-    log_file = open("veiculos_parados_log.csv", "w")
+    log_path = f"{output_dir}/veiculos_parados_log_{timestamp_nome}.csv"
+    log_file = open(log_path, "w")
     log_file.write("timestamp,frame,id,x,y,classe,tempo_parado,em_zona_proibida\n")
-    
+
     # Alertas já enviados
     alertas_enviados = set()
-    
-    print("\n PROCESSANDO... Comandos:")
-    print("   'q' - sair")
-    print("   's' - guardar screenshot")
-    print("   'd' - mostrar estatísticas")
-    print("   'p' - mostrar veículos parados")
+
+    print("\n PROCESSANDO (modo automático, sem interface gráfica)...")
     print("-"*50)
-    
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -485,7 +429,7 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True):
                 print(f"   Posição: {ultimo_centro}")
                 
                 # Guardar screenshot do alerta
-                screenshot_path = f"alerta_parado_{veiculo_id}_{frame_count}.jpg"
+                screenshot_path = f"{output_dir}/alerta_parado_{veiculo_id}_{frame_count}.jpg"
                 cv2.imwrite(screenshot_path, frame)
                 print(f"    Screenshot: {screenshot_path}")
             
@@ -543,54 +487,25 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True):
                    (frame.shape[1]-200, 30), cv2.FONT_HERSHEY_SIMPLEX, 
                    0.5, (255, 255, 0), 1)
         
-        # Instruções
-        cv2.putText(frame_anotado, "q-sair | s-screenshot | d-stats | p-parados", 
-                   (10, frame.shape[0]-20), cv2.FONT_HERSHEY_SIMPLEX, 
-                   0.5, (255, 255, 255), 1)
-        
-        # Mostrar
-        cv2.imshow('Deteccao de Veiculos Parados - Modulo 8', frame_anotado)
-        
-        # Comandos
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
-        elif key == ord('s'):
-            cv2.imwrite(f"screenshot_frame_{frame_count}.jpg", frame_anotado)
-            print(f" Screenshot: screenshot_frame_{frame_count}.jpg")
-        elif key == ord('d'):
-            print(f"\n ESTATÍSTICAS:")
-            print(f"   Frames: {frame_count}")
-            print(f"   FPS: {fps_atual:.1f}")
-            print(f"   Veículos únicos: {rastreador.proximo_id}")
-            print(f"   Veículos parados: {len(veiculos_parados_frame)}")
-            print(f"   Alertas enviados: {len(alertas_enviados)}")
-        elif key == ord('p'):
-            veiculos_parados = rastreador.get_veiculos_parados()
-            print(f"\n⏸  VEÍCULOS PARADOS ({len(veiculos_parados)}):")
-            if veiculos_parados:
-                for vid in veiculos_parados:
-                    dados = rastreador.get_dados_veiculo(vid)
-                    if dados:
-                        em_zona, nome_zona = zonas.veiculo_em_zona_proibida(dados['ultimo_centro'])
-                        print(f"   ID:{vid} - tempo: {dados['tempo_parado']:.1f}s - "
-                              f"pos: {dados['ultimo_centro']} - "
-                              f"{' ZONA PROIBIDA' if em_zona else '⏸ PARADO'}")
-            else:
-                print("   Nenhum veículo parado no momento")
-    
+        # GUARDAR FRAME NO VÍDEO
+        if salvar_video and out is not None:
+            out.write(frame_anotado)
+
     # Fechar recursos
     cap.release()
-    cv2.destroyAllWindows()
+    if salvar_video:
+        out.release()
     log_file.close()
-    
+
+    video_browser = converter_video_para_browser(output_path) if salvar_video else None
+
     print(f"\n Processamento concluído!")
-    print(f" Log: veiculos_parados_log.csv")
+    print(f" Log: {log_path}")
     print(f" Total frames: {frame_count}")
     print(f" Veículos únicos: {rastreador.proximo_id}")
     alertas=len(alertas_enviados)
 
-    analise = ResultadoAnaliseService.executar_analise(denuncia, output_path, alertas)
+    analise = ResultadoAnaliseService.executar_analise(denuncia, video_browser or output_path, alertas)
 
     return analise
 
