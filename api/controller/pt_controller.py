@@ -5,11 +5,27 @@ from drf_yasg.utils import swagger_auto_schema
 from api.permissions.role_permissions import IsAdmin, IsPT, IsAdminOrSuperAdmin
 from api.service.pt_service import PTService
 from api.serializers.user_serializer import PTCreateSerializer, PTResponseSerializer
+from api.pagination import PaginacaoPadrao
 from rest_framework.decorators import action
+
+def _serializar_pts(pts):
+    return [
+        {
+            "id": p.id,
+            "nome": p.utilizador.nome,
+            "email": p.utilizador.email,
+            "numero_agente": p.numero_agente,
+            "localizacao": p.localizacao,
+            "admin_id": p.admin_id
+        }
+        for p in pts
+    ]
+
 
 class PtViewSet(ViewSet):
 
     permission_classes = [IsAdmin]
+    pagination_class = PaginacaoPadrao
 
     def get_permissions(self):
         if self.action == "list":
@@ -17,25 +33,16 @@ class PtViewSet(ViewSet):
         return [IsAdmin()]
 
     @swagger_auto_schema(
-        operation_description="Listar todos os PTs",
+        operation_description="Listar todos os PTs (paginado; ?page=&page_size=)",
         responses={200: PTResponseSerializer(many=True)}
     )
     def list(self, request):
-        pts = PTService.listar_pts()
+        pts = PTService.listar_pts().select_related("utilizador").order_by("id")
 
-        data = [
-            {
-                "id": p.id,
-                "nome": p.utilizador.nome,
-                "email": p.utilizador.email,
-                "numero_agente": p.numero_agente,
-                "localizacao": p.localizacao,
-                "admin_id": p.admin_id
-            }
-            for p in pts
-        ]
+        paginator = self.pagination_class()
+        pagina = paginator.paginate_queryset(pts, request, view=self)
 
-        return Response(data)
+        return paginator.get_paginated_response(_serializar_pts(pagina))
 
     
 
@@ -103,27 +110,18 @@ class PtViewSet(ViewSet):
 
     
     @swagger_auto_schema(
-        operation_description="Listar todos os PTs de um admin especifico",
+        operation_description="Listar todos os PTs de um admin especifico (paginado; ?page=&page_size=)",
         responses={200: PTResponseSerializer(many=True)}
     )
     @action(detail=False, methods=["get"], url_path="admin/(?P<admin_id>[^/.]+)")
     def listar_por_admin(self, request, admin_id=None):
 
-        pts = PTService.listar_pts_por_admin(admin_id)
+        pts = PTService.listar_pts_por_admin(admin_id).select_related("utilizador").order_by("id")
 
-        data = [
-            {
-                "id": p.id,
-                "nome": p.utilizador.nome,
-                "email": p.utilizador.email,
-                "numero_agente": p.numero_agente,
-                "localizacao": p.localizacao,
-                "admin_id": p.admin_id
-            }
-            for p in pts
-        ]
+        paginator = self.pagination_class()
+        pagina = paginator.paginate_queryset(pts, request, view=self)
 
-        return Response(data)
+        return paginator.get_paginated_response(_serializar_pts(pagina))
 
 
 

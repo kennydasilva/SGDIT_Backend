@@ -6,19 +6,39 @@ from drf_yasg.utils import swagger_auto_schema
 
 from api.permissions.role_permissions import IsSuperAdmin
 from api.service.cidadao_service import CidadaoService
+from api.pagination import PaginacaoPadrao
+
+CAMPOS_ORDENACAO_CIDADAOS = {
+    "id": "id",
+    "numero_denuncias": "numero_denuncias",
+    "data_registo": "utilizador__data_registo",
+}
 
 
 class SuperAdminViewSet(ViewSet):
 
     permission_classes = [IsSuperAdmin]
+    pagination_class = PaginacaoPadrao
 
     @swagger_auto_schema(
-        operation_description="Listar todos os cidadãos"
+        operation_description="Listar todos os cidadãos (paginado; ?page=&page_size=&ordering=)"
     )
     @action(detail=False, methods=["get"], url_path="cidadao/lista")
     def listar_cidadaos(self, request):
 
-        cidadaos = CidadaoService.listar_cidadaos()
+        ordering = request.query_params.get("ordering", "-utilizador__data_registo")
+        campo = ordering.lstrip("-")
+        campo_real = CAMPOS_ORDENACAO_CIDADAOS.get(campo)
+
+        if not campo_real:
+            ordering = "-utilizador__data_registo"
+        else:
+            ordering = f"-{campo_real}" if ordering.startswith("-") else campo_real
+
+        cidadaos = CidadaoService.listar_cidadaos().select_related("utilizador").order_by(ordering)
+
+        paginator = self.pagination_class()
+        pagina = paginator.paginate_queryset(cidadaos, request, view=self)
 
         data = [
             {
@@ -27,12 +47,13 @@ class SuperAdminViewSet(ViewSet):
                 "email": c.utilizador.email,
                 "data_registo": c.utilizador.data_registo,
                 "numero": c.utilizador.numero,
+                "numero_denuncias": c.numero_denuncias,
                 "ativo": c.utilizador.is_active,
             }
-            for c in cidadaos
+            for c in pagina
         ]
 
-        return Response(data)
+        return paginator.get_paginated_response(data)
 
     @swagger_auto_schema(
         operation_description="Ativar ou desativar um cidadão",

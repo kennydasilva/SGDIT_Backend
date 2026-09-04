@@ -172,7 +172,10 @@ REST_FRAMEWORK = {
 
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
-    )
+    ),
+
+    "DEFAULT_PAGINATION_CLASS": "api.pagination.PaginacaoPadrao",
+    "PAGE_SIZE": 20,
 }
 
 SWAGGER_SETTINGS = {
