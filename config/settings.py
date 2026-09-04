@@ -197,6 +197,11 @@ CELERY_TASK_SERIALIZER = 'json'
 
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@sgdit.local")
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 
 
 
