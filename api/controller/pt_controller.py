@@ -2,7 +2,7 @@ from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
-from api.permissions.role_permissions import IsAdmin, IsPT
+from api.permissions.role_permissions import IsAdmin, IsPT, IsAdminOrSuperAdmin
 from api.service.pt_service import PTService
 from api.serializers.user_serializer import PTCreateSerializer, PTResponseSerializer
 from rest_framework.decorators import action
@@ -10,6 +10,11 @@ from rest_framework.decorators import action
 class PtViewSet(ViewSet):
 
     permission_classes = [IsAdmin]
+
+    def get_permissions(self):
+        if self.action == "list":
+            return [IsAdminOrSuperAdmin()]
+        return [IsAdmin()]
 
     @swagger_auto_schema(
         operation_description="Listar todos os PTs",
