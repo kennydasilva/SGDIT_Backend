@@ -109,6 +109,11 @@ class CalculadorVelocidade:
     def __init__(self):
         self.fps = 30
         self.escala = None
+        # minimo de pontos rastreados antes de confiar na velocidade -
+        # com poucos pontos, ruido de deteccao/tracking (jitter da bbox,
+        # troca de ID entre veiculos proximos) produz saltos de velocidade
+        # irrealistas (ex: 170 km/h num frame, 1 km/h no seguinte)
+        self.min_pontos = 10
 
     def configurar_fps(self, fps):
         if fps and fps > 1:
@@ -120,26 +125,32 @@ class CalculadorVelocidade:
 
     def calcular(self, centros):
 
-        if len(centros) < 2:
+        if len(centros) < self.min_pontos:
             return 0
 
         if self.escala is None:
             return 0
 
-        distancia_pixels = 0
+        distancias_segmento = []
 
         for i in range(1, len(centros)):
             x1, y1 = centros[i - 1]
             x2, y2 = centros[i]
-            distancia_pixels += math.hypot(x2 - x1, y2 - y1)
+            distancias_segmento.append(math.hypot(x2 - x1, y2 - y1))
 
-        distancia_m = distancia_pixels * self.escala
-        tempo = len(centros) / self.fps
-
-        if tempo == 0:
+        if not distancias_segmento:
             return 0
 
-        velocidade_ms = distancia_m / tempo
+        # Mediana em vez de soma/média total: um único salto (ruído de
+        # deteção ou troca de ID entre veículos próximos) não deve dominar
+        # a estimativa - a mediana representa o movimento "típico" recente
+        distancias_segmento.sort()
+        distancia_pixels_tipica = distancias_segmento[len(distancias_segmento) // 2]
+
+        distancia_m = distancia_pixels_tipica * self.escala
+        tempo_por_frame = 1 / self.fps
+
+        velocidade_ms = distancia_m / tempo_por_frame
         velocidade_kmh = velocidade_ms * 3.6
 
         return velocidade_kmh
