@@ -7,6 +7,7 @@ from api.controller.admin_controller import AdminController
 from api.controller.denucia_controller import DenunciaViewSet
 from api.controller.pt_controller import PtViewSet, PtUserViewSet
 from api.controller.superadmin_controller import SuperAdminViewSet
+from api.controller.configuracao_controller import ConfiguracaoPublicaController
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -23,6 +24,7 @@ urlpatterns = [
     path("password-reset/confirm/", PasswordResetConfirmController.as_view()),
     path("cidadaos/registrar/", RegistarCidadaoController.as_view()),
     path("admins/", AdminController.as_view()),
+    path("config/publica/", ConfiguracaoPublicaController.as_view()),
 
 ]
 

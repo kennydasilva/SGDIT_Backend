@@ -6,7 +6,14 @@ from drf_yasg.utils import swagger_auto_schema
 
 from api.permissions.role_permissions import IsSuperAdmin
 from api.service.cidadao_service import CidadaoService
+from api.service.configuracao_service import ConfiguracaoService
 from api.pagination import PaginacaoPadrao
+
+
+def _mascarar(valor):
+    if not valor or len(valor) <= 4:
+        return "••••"
+    return "••••" + valor[-4:]
 
 CAMPOS_ORDENACAO_CIDADAOS = {
     "id": "id",
@@ -77,3 +84,47 @@ class SuperAdminViewSet(ViewSet):
         cidadao.utilizador.save()
 
         return Response({"message": "Estado do cidadão atualizado"})
+
+    # Listar (GET) ou criar/atualizar (POST) credenciais de integrações
+    # externas (Google Maps, Firebase, etc.). Valores nunca são devolvidos
+    # em claro - só mascarados.
+    @action(detail=False, methods=["get", "post"], url_path="config")
+    def config(self, request):
+
+        if request.method == "POST":
+            chave = request.data.get("chave")
+            valor = request.data.get("valor")
+            publica = bool(request.data.get("publica", False))
+            descricao = request.data.get("descricao", "")
+
+            if not chave or not valor:
+                return Response(
+                    {"error": "chave e valor são obrigatórios"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            ConfiguracaoService.definir(chave, valor, publica, descricao)
+            return Response({"message": "Configuração guardada"})
+
+        configs = ConfiguracaoService.listar()
+
+        data = [
+            {
+                "chave": c.chave,
+                "publica": c.publica,
+                "descricao": c.descricao,
+                "valor_mascarado": _mascarar(c.get_valor()),
+                "atualizado_em": c.atualizado_em,
+            }
+            for c in configs
+        ]
+
+        return Response(data)
+
+    @swagger_auto_schema(
+        operation_description="Apagar uma credencial de integração"
+    )
+    @action(detail=False, methods=["delete"], url_path="config/(?P<chave>[^/.]+)")
+    def apagar_config(self, request, chave=None):
+        ConfiguracaoService.apagar(chave)
+        return Response(status=status.HTTP_204_NO_CONTENT)
