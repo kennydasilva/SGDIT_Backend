@@ -7,6 +7,7 @@ from drf_yasg.utils import swagger_auto_schema
 from api.permissions.role_permissions import IsSuperAdmin
 from api.service.cidadao_service import CidadaoService
 from api.service.configuracao_service import ConfiguracaoService
+from api.service.jurisdicao_service import JurisdicaoService
 from api.pagination import PaginacaoPadrao
 
 
@@ -127,4 +128,46 @@ class SuperAdminViewSet(ViewSet):
     @action(detail=False, methods=["delete"], url_path="config/(?P<chave>[^/.]+)")
     def apagar_config(self, request, chave=None):
         ConfiguracaoService.apagar(chave)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    # Vias/estradas atribuídas à jurisdição de um posto (Admin). Só o Super
+    # Admin gere isto - protege o sistema de um Admin atribuir a si próprio
+    # vias fora da sua jurisdição real.
+    @action(detail=False, methods=["get", "post"], url_path="admin/(?P<admin_id>[^/.]+)/vias")
+    def vias_jurisdicao(self, request, admin_id=None):
+
+        if request.method == "POST":
+            nome_via = request.data.get("nome_via")
+            place_id = request.data.get("place_id")
+            geometria = request.data.get("geometria")
+
+            if not nome_via or not place_id:
+                return Response(
+                    {"error": "nome_via e place_id são obrigatórios"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            via = JurisdicaoService.adicionar_via(admin_id, nome_via, place_id, geometria)
+            return Response({"message": "Via adicionada à jurisdição", "id": via.id})
+
+        vias = JurisdicaoService.listar_por_admin(admin_id)
+
+        data = [
+            {
+                "id": v.id,
+                "nome_via": v.nome_via,
+                "place_id": v.place_id,
+                "geometria": v.geometria,
+            }
+            for v in vias
+        ]
+
+        return Response(data)
+
+    @swagger_auto_schema(
+        operation_description="Remover uma via da jurisdição de um posto"
+    )
+    @action(detail=False, methods=["delete"], url_path="admin/(?P<admin_id>[^/.]+)/vias/(?P<via_id>[^/.]+)")
+    def remover_via_jurisdicao(self, request, admin_id=None, via_id=None):
+        JurisdicaoService.remover_via(admin_id, via_id)
         return Response(status=status.HTTP_204_NO_CONTENT)
