@@ -22,21 +22,26 @@ class RastreadorParados:
     """
     Rastreador que deteta veículos parados por muito tempo
     """
-    def __init__(self, max_historico=100, fps=30):
+    def __init__(self, max_historico=None, fps=30, tempo_min_parado=10):
         self.veiculos = {}
         self.proximo_id = 0
         self.cores = {}
-        self.max_historico = max_historico
-        
-        # Melhorado (antes 100)
+
         self.distancia_maxima = 250
-        
+
         self.fps = fps if fps > 0 else 30
-        
+
         # Parâmetros para deteção de parados
-        self.tempo_min_parado = 10
+        self.tempo_min_parado = tempo_min_parado
         self.distancia_min_movimento = 15
-        
+
+        # O histórico guardado por veículo precisa de cobrir pelo menos
+        # tempo_min_parado ao fps real, com margem - com um valor fixo
+        # baixo (ex: 100 frames a 20fps = 5s), nunca seria possível
+        # confirmar 10s de paragem, por mais tempo que o veículo estivesse
+        # realmente parado
+        self.max_historico = max_historico or int(self.tempo_min_parado * self.fps * 2)
+
         # Novo: tolerância para perda temporária de deteção
         self.frames_perdidos_max = 120
 
@@ -163,15 +168,24 @@ class RastreadorParados:
 
     def _calcular_tempo_parado(self, dados):
         """
-        Calcula tempo parado
+        Calcula tempo parado, percorrendo TODO o histórico disponível (não só
+        os últimos 30 frames - a um fps normal isso cobre no máximo ~1-1.5s,
+        muito abaixo de tempo_min_parado (10s por omissão), o que tornava
+        impossível confirmar um veículo parado, independentemente do tempo
+        real. Tolera alguns frames isolados de ruído (jitter de deteção)
+        sem reiniciar a contagem toda - só quebra a sequência com movimento
+        sustentado (várias frames seguidas), sinal de movimento real.
         """
-        if len(dados['centros']) < 5:
+        centros = list(dados['centros'])
+
+        if len(centros) < 5:
             return 0
 
-        centros = list(dados['centros'])
         frames_parado = 0
+        ruido_consecutivo = 0
+        max_ruido_tolerado = 3
 
-        for i in range(1, min(30, len(centros))):
+        for i in range(1, len(centros)):
             x1, y1 = centros[-i - 1]
             x2, y2 = centros[-i]
 
@@ -179,8 +193,12 @@ class RastreadorParados:
 
             if dist < self.distancia_min_movimento:
                 frames_parado += 1
+                ruido_consecutivo = 0
             else:
-                break
+                ruido_consecutivo += 1
+                if ruido_consecutivo > max_ruido_tolerado:
+                    break
+                frames_parado += 1
 
         tempo_parado = frames_parado / self.fps
         return tempo_parado
@@ -315,8 +333,7 @@ def processar_video_parados(caminho_video,denuncia,salvar_video=True,tempo_min_p
     out = cv2.VideoWriter(output_path, fourcc, fps, (largura, altura))
 
     # Inicializar rastreador
-    rastreador = RastreadorParados(max_historico=100, fps=fps)
-    rastreador.tempo_min_parado = tempo_min_parado
+    rastreador = RastreadorParados(fps=fps, tempo_min_parado=tempo_min_parado)
 
     #  CORREÇÃO: Ler primeiro frame corretamente
     ret, primeiro_frame = cap.read()
