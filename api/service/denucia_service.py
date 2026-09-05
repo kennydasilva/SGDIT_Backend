@@ -36,7 +36,9 @@ class DenunciaService:
         descricao,
         tipo_infracao,
         localizacao,
-        sentido_direccao
+        sentido_direccao,
+        latitude=None,
+        longitude=None
     ):
         cidadao = DenunciaService.encontrar_utilizador_cidadao(cidadao_id)
 
@@ -47,6 +49,8 @@ class DenunciaService:
             tipo_infracao=tipo_infracao,
             localizacao=localizacao,
             sentido_direccao=sentido_direccao or "",
+            latitude=latitude,
+            longitude=longitude,
             descricao_pt="",
             codigo_legal=""
         )
