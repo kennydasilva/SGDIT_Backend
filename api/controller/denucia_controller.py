@@ -161,13 +161,21 @@ class DenunciaViewSet(ViewSet):
                     status=400
                 )
 
+            def _para_float(valor):
+                try:
+                    return float(valor) if valor not in (None, "") else None
+                except (TypeError, ValueError):
+                    return None
+
             denuncia = DenunciaService.criar_denuncia(
                 request.data.get("cidadao_id"),
                 request.data.get("matricula"),
                 request.data.get("descricao"),
                 request.data.get("tipo_infracao"),
                 request.data.get("localizacao"),
-                request.data.get("sentido_direccao")
+                request.data.get("sentido_direccao"),
+                _para_float(request.data.get("latitude")),
+                _para_float(request.data.get("longitude"))
             )
 
             evidencia = EvidenciaService.criar_evidencia(denuncia, ficheiro)
@@ -274,6 +282,8 @@ class DenunciaViewSet(ViewSet):
                 "descricao": denuncia.descricao,
                 "tipo_infracao": denuncia.tipo_infracao,
                 "localizacao": denuncia.localizacao,
+                "latitude": denuncia.latitude,
+                "longitude": denuncia.longitude,
                 "sentido_direccao": denuncia.sentido_direccao,
                 "ficheiro_processado": ficheiro_processado,
                 "ficheiro_original": ficheiro_original,
