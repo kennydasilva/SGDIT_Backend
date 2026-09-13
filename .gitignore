@@ -1,7 +1,9 @@
 .venv/
+venv/
 *pyc
 __pycache__/
 .env
+media/videos_processados/*.csv
 *mp4
 *.avi
 *.mkv
