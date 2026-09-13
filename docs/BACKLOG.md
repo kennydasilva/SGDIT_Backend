@@ -82,9 +82,19 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 - **Vias da jurisdição passam a ser desenhadas no mapa** (antes só mostrava um pino no ponto central). Ao adicionar uma via, guarda-se também o `viewport` que o Google Places devolve para esse local (área retangular aproximada), desenhado como retângulo semi-transparente sobre o mapa, além do marcador. Não é o traçado exato da estrada (o Google não devolve isso via Places Autocomplete, só a Directions/Roads API com origem/destino conhecidos) — nota no ecrã a deixar isso claro. _(commit `e6d10c6`)_
 - **Combobox de postos policiais reais de Maputo ao criar Admin** — lista levantada pelo utilizador (WLSA Moçambique, ACIPOL, documentação municipal), 22 postos/esquadras confirmados, com "Outro (não está na lista)" para os que faltam (decisão do utilizador: deixar assim por agora, lista propositadamente incompleta). Mesmo padrão combobox-com-fallback usado em Configurações, para evitar erros de digitação no nome do posto — importante porque a jurisdição associa vias a este campo. _(commit `195f0b7`)_
 
+## 2026-09-13
+
+### ✅ Concluído
+
+- **UI de paginação no frontend** (backend já paginava desde a sessão de 2026-09-04, mas nenhuma página tinha botões Anterior/Seguinte — `MinhasDenuncias.tsx` do cidadão até já tinha uma barra de paginação, mas era puramente decorativa, sem `onClick` nem ligação ao estado):
+  - Novo componente partilhado `src/components/Paginacao.tsx` — Anterior/Seguinte, contagem "Mostrando X a Y de Z", calcula o total de páginas a partir de `count`/`page_size` (não depende de parsear `next`/`previous`); auto-esconde-se quando só há 1 página.
+  - Serviços (`superAdminService.ts`, `ptService.ts`, `denunciaService.tsx`) passam a aceitar `page` e devolver a resposta paginada completa (`{count, next, previous, results}`) em vez de só `.results` — quem só precisava do array (dashboards, combobox de admins em Jurisdições) foi ajustado para extrair `.results` explicitamente.
+  - Ligado nas 8 páginas de listagem que consomem estes endpoints: `SuperAdmin/Cidadaos.tsx`, `SuperAdmin/Denuncias.tsx`, `SuperAdmin/Policiais.tsx`, `SuperAdmin/Admins.tsx`, `Admin/Policias.tsx`, `PT/DenunciasPt.tsx`, `PT/MinhasDecisoesPt.tsx`, `cidadao/MinhasDenuncias.tsx`.
+  - **Limitação conhecida, não introduzida por esta alteração:** os contadores/estatísticas calculados no cliente a partir da lista carregada (ex: `statusCount` em `SuperAdmin/Denuncias.tsx`, totais em `PT/MinhasDecisoesPt.tsx`, combobox de admins em `Jurisdicoes.tsx`) continuam a refletir só a página atual (até 20 itens) — já era assim antes de existir paginação, não agravado agora.
+  - Verificado: `tsc -b` sem novos erros (comparado com baseline antes da alteração, via `git stash`); `vite dev` arranca sem erros de build. **Não testado visualmente no browser** — precisaria do backend (Django + Redis + Celery) a correr com dados/conta semeados, o que não foi feito nesta sessão.
+
 ### ⏳ Por fazer (identificado mas não priorizado ainda)
 
-- **UI de paginação no frontend** (botões Seguinte/Anterior/contagem) — o backend já pagina, o frontend ainda só consome a primeira página.
 - ~~Reconhecimento automático de matrícula (ALPR/OCR)~~ — **rejeitado pelo utilizador** (2026-09-04): a qualidade da câmara do telemóvel do cidadão é demasiado variável/imprevisível para dar leituras fiáveis; geraria falsos negativos constantes e falsa expectativa de verificação automática. Não avançar.
 - Análise dos 3 algoritmos de deteção feita e registada em [`docs/ANALISE_ALGORITMOS_VIDEO.md`](ANALISE_ALGORITMOS_VIDEO.md) — nenhuma sugestão aplicada ainda, por priorizar/discutir.
 - **Denúncia de "acidente de viação" (novo tipo) — decisão de desenho confirmada com o utilizador:**
