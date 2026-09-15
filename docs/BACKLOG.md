@@ -97,6 +97,14 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - **Por fazer para fechar a funcionalidade (frontend, `SBDIT_Frontend_TS`, fora desta sessão):** formulário de reporte de acidente (sem upload obrigatório), ecrã do Admin para ver acidentes da sua jurisdição e designar agente, e o registo do `fcm_token` no dashboard do Admin (Firebase JS SDK + Service Worker + pedir permissão de notificações — precisa de config Firebase Web própria: `apiKey`/`projectId`/`messagingSenderId`/`appId`/VAPID key, a acrescentar a Configurações como chaves públicas, tal como já existe para o Google Maps).
   - **Nota:** a notificação é *push* (Firebase Cloud Messaging), não SMS de telecom a um número de telefone — usa a credencial `FIREBASE_SERVICE_ACCOUNT_JSON` já prevista no projecto para isto. Só chega ao Admin se ele tiver a dashboard aberta (ou app instalada) e tiver autorizado notificações; para SMS real a qualquer telemóvel (sem app aberta) seria preciso um gateway de telecom à parte (ex: Twilio/Africa's Talking), não coberto por Firebase.
 
+### ⏳ Por fazer — decisão tomada, integração adiada
+
+- **SMS real (telecom) para o Admin do posto — adiado a pedido do utilizador ("faremos depois isso"), decisão de fornecedor já pesquisada e pronta para quando avançar:**
+  - **Twilio** — recomendado: trial grátis (~100 SMS/30 dias) chega mesmo ao telemóvel, cobertura de Moçambique confirmada na pricing page deles; limitação do trial: só envia para números verificados na consola, e fica restrito ao país de registo da conta (registar com número moçambicano cobre o teste em Moçambique).
+  - **Vonage** — alternativa: €2 crédito grátis, chega ao telemóvel, mas só a até 5 números verificados e cada SMS sai com `[FREE SMS DEMO, TEST MESSAGE]` anexado.
+  - **Africa's Talking** — descartado para fase de teste: o sandbox é só um simulador (app deles), nunca entrega a um telemóvel real; só envia SMS a sério depois de carregar saldo pago.
+  - **Quando avançar:** precisa que o utilizador crie a conta no fornecedor escolhido e forneça as credenciais (Twilio: Account SID + Auth Token + número de origem) para guardar em Configurações, como já se faz com o Google Maps/Firebase.
+
 ## 2026-09-13
 
 ### ✅ Concluído
