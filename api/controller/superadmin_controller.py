@@ -8,7 +8,7 @@ from drf_yasg import openapi
 from api.permissions.role_permissions import IsSuperAdmin
 from api.service.cidadao_service import CidadaoService
 from api.service.configuracao_service import ConfiguracaoService
-from api.service.jurisdicao_service import JurisdicaoService
+from api.service.jurisdicao_service import JurisdicaoService, ZonaSobrepostaError
 from api.service.nominatim_service import NominatimService
 from api.service.overpass_service import OverpassService
 from api.service.relatorio_service import RelatorioService
@@ -168,6 +168,22 @@ class SuperAdminViewSet(ViewSet):
 
         return Response(vias)
 
+    @swagger_auto_schema(
+        operation_description="Obter o contorno real (polígono, GeoJSON) de um bairro - para atribuir "
+                               "como zona inteira à jurisdição de um posto, mais preciso que um rectângulo"
+    )
+    @action(detail=False, methods=["get"], url_path="vias/bairro/(?P<osm_type>[^/.]+)/(?P<osm_id>[^/.]+)/poligono")
+    def poligono_do_bairro(self, request, osm_type=None, osm_id=None):
+        poligono = NominatimService.obter_poligono_bairro(osm_type, osm_id)
+
+        if poligono is None:
+            return Response(
+                {"error": "Não foi possível obter o contorno do bairro (serviço externo indisponível ou sem polígono). Tenta novamente daqui a pouco."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
+        return Response({"polygon": poligono})
+
     # Vias/estradas atribuídas à jurisdição de um posto (Admin). Só o Super
     # Admin gere isto - protege o sistema de um Admin atribuir a si próprio
     # vias fora da sua jurisdição real.
@@ -185,7 +201,17 @@ class SuperAdminViewSet(ViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            via = JurisdicaoService.adicionar_via(admin_id, nome_via, place_id, geometria)
+            # Zona (polígono do bairro inteiro): recorta automaticamente
+            # contra zonas já existentes de qualquer posto, para nunca
+            # ficarem sobrepostas (igual ao TruckFreightEasy).
+            if geometria and geometria.get("polygon"):
+                try:
+                    via = JurisdicaoService.adicionar_zona(admin_id, nome_via, place_id, geometria["polygon"])
+                except ZonaSobrepostaError as erro:
+                    return Response({"error": str(erro)}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                via = JurisdicaoService.adicionar_via(admin_id, nome_via, place_id, geometria)
+
             return Response({"message": "Via adicionada à jurisdição", "id": via.id})
 
         vias = JurisdicaoService.listar_por_admin(admin_id)

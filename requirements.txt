@@ -114,6 +114,7 @@ safety==3.7.0
 safety-schemas==0.0.16
 schemathesis==4.11.2
 setuptools==82.0.0
+shapely==2.1.2
 shellingham==1.5.4
 simple-websocket==1.1.0
 six==1.17.0
