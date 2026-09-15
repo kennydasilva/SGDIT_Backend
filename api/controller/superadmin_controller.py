@@ -3,11 +3,14 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from api.permissions.role_permissions import IsSuperAdmin
 from api.service.cidadao_service import CidadaoService
 from api.service.configuracao_service import ConfiguracaoService
 from api.service.jurisdicao_service import JurisdicaoService
+from api.service.nominatim_service import NominatimService
+from api.service.overpass_service import OverpassService
 from api.service.relatorio_service import RelatorioService
 from api.pagination import PaginacaoPadrao
 
@@ -131,6 +134,40 @@ class SuperAdminViewSet(ViewSet):
         ConfiguracaoService.apagar(chave)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @swagger_auto_schema(
+        operation_description="Pesquisar vias/estradas (OpenStreetMap Nominatim, filtrado a resultados do tipo via) "
+                               "para atribuir à jurisdição de um posto. ?q=<pesquisa>"
+    )
+    @action(detail=False, methods=["get"], url_path="vias/pesquisar")
+    def pesquisar_vias(self, request):
+        query = request.query_params.get("q", "")
+        return Response(NominatimService.pesquisar_vias(query))
+
+    @swagger_auto_schema(
+        operation_description="Pesquisar bairros/localidades (OpenStreetMap Nominatim), para depois listar as "
+                               "vias desse bairro com 'vias/bairro/<osm_type>/<osm_id>/'. ?q=<pesquisa>"
+    )
+    @action(detail=False, methods=["get"], url_path="vias/pesquisar-bairro")
+    def pesquisar_bairros(self, request):
+        query = request.query_params.get("q", "")
+        return Response(NominatimService.pesquisar_bairros(query))
+
+    @swagger_auto_schema(
+        operation_description="Listar todas as vias nomeadas dentro de um bairro (OpenStreetMap Overpass, "
+                               "cacheado 1 dia) - para adicionar de uma vez à jurisdição de um posto"
+    )
+    @action(detail=False, methods=["get"], url_path="vias/bairro/(?P<osm_type>[^/.]+)/(?P<osm_id>[^/.]+)")
+    def vias_do_bairro(self, request, osm_type=None, osm_id=None):
+        vias = OverpassService.listar_vias_do_bairro(osm_type, osm_id)
+
+        if vias is None:
+            return Response(
+                {"error": "Não foi possível obter as vias do bairro (serviço externo indisponível). Tenta novamente daqui a pouco."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
+        return Response(vias)
+
     # Vias/estradas atribuídas à jurisdição de um posto (Admin). Só o Super
     # Admin gere isto - protege o sistema de um Admin atribuir a si próprio
     # vias fora da sua jurisdição real.
@@ -164,6 +201,35 @@ class SuperAdminViewSet(ViewSet):
         ]
 
         return Response(data)
+
+    @swagger_auto_schema(
+        operation_description="Adicionar várias vias de uma vez à jurisdição de um posto "
+                               "(ex: todas as vias devolvidas por 'vias/bairro/...')",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "vias": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_OBJECT),
+                ),
+            }
+        )
+    )
+    @action(detail=False, methods=["post"], url_path="admin/(?P<admin_id>[^/.]+)/vias-bulk")
+    def vias_jurisdicao_bulk(self, request, admin_id=None):
+        vias = request.data.get("vias") or []
+
+        adicionadas = 0
+        for via in vias:
+            nome_via = via.get("nome_via")
+            place_id = via.get("place_id")
+            if not nome_via or not place_id:
+                continue
+
+            JurisdicaoService.adicionar_via(admin_id, nome_via, place_id, via.get("geometria"))
+            adicionadas += 1
+
+        return Response({"message": f"{adicionadas} via(s) adicionada(s) à jurisdição", "total": adicionadas})
 
     @swagger_auto_schema(
         operation_description="Remover uma via da jurisdição de um posto"
