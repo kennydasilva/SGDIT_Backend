@@ -33,25 +33,45 @@ class JurisdicaoService:
         """
         Determina o posto (Admin) responsável por uma coordenada, a partir
         da área aproximada (bounds do viewport do Google) guardada em
-        ViaJurisdicao.geometria para cada via da jurisdição.
+        ViaJurisdicao.geometria para cada via/bairro da jurisdição.
 
-        Não é o traçado exato da via (o Google Places Autocomplete não
-        devolve isso), mas é a mesma aproximação já usada para desenhar as
-        vias no mapa de Jurisdições - suficiente para decidir qual posto
-        notificar, sem depender de nenhuma API/geometria nova.
+        Não é o traçado exato da via nem o polígono real do bairro (o Google
+        Places Autocomplete não devolve isso), mas é a mesma aproximação já
+        usada para desenhar as vias no mapa de Jurisdições - suficiente para
+        decidir qual posto notificar, sem depender de nenhuma API/geometria
+        nova.
+
+        Como agora é possível atribuir tanto uma via específica (retângulo
+        pequeno) como um bairro inteiro (retângulo grande, ex: "Albazine"),
+        os dois podem cobrir o mesmo ponto ao mesmo tempo - por exemplo, uma
+        via só de um posto vizinho pode ter o retângulo a invadir ligeiramente
+        o bairro de outro posto. Nesses casos escolhe-se sempre o retângulo
+        de MENOR área (o match mais específico), em vez do primeiro
+        encontrado - reduz o risco de notificar o posto errado por causa de
+        sobreposição entre bounds aproximados.
         """
         if latitude is None or longitude is None:
             return None
+
+        melhor_admin = None
+        menor_area = None
 
         for via in ViaJurisdicao.objects.select_related("admin").exclude(geometria__isnull=True):
             bounds = (via.geometria or {}).get("bounds")
             if not bounds:
                 continue
 
-            if (
-                bounds.get("south") <= latitude <= bounds.get("north")
-                and bounds.get("west") <= longitude <= bounds.get("east")
-            ):
-                return via.admin
+            norte, sul = bounds.get("north"), bounds.get("south")
+            este, oeste = bounds.get("east"), bounds.get("west")
+            if None in (norte, sul, este, oeste):
+                continue
 
-        return None
+            if not (sul <= latitude <= norte and oeste <= longitude <= este):
+                continue
+
+            area = (norte - sul) * (este - oeste)
+            if menor_area is None or area < menor_area:
+                menor_area = area
+                melhor_admin = via.admin
+
+        return melhor_admin
