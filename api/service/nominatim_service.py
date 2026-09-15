@@ -7,7 +7,11 @@ from api.helper.http_retry import com_retry
 logger = logging.getLogger(__name__)
 
 _URL_PESQUISA = "https://nominatim.openstreetmap.org/search"
+_URL_LOOKUP = "https://nominatim.openstreetmap.org/lookup"
 _USER_AGENT = "SGDIT-Backend/1.0 (jurisdicao-service)"
+
+# Nominatim identifica elementos OSM com um prefixo de 1 letra por tipo
+_PREFIXO_OSM_TYPE = {"node": "N", "way": "W", "relation": "R"}
 
 
 class NominatimService:
@@ -119,6 +123,50 @@ class NominatimService:
             })
 
         return resultado
+
+    @staticmethod
+    def obter_poligono_bairro(osm_type, osm_id):
+        """
+        Contorno real (polígono, não um rectângulo aproximado) de um
+        bairro/localidade - usado para atribuir uma "zona" inteira à
+        jurisdição de um posto, em vez de vias avulsas. Pode ser um
+        Polygon (uma área) ou MultiPolygon (várias áreas separadas) - o
+        formato GeoJSON é devolvido tal e qual para o frontend desenhar, e
+        `JurisdicaoService` usa `_pontos_dos_aneis()` para o teste
+        ponto-dentro-do-polígono.
+        """
+        prefixo = _PREFIXO_OSM_TYPE.get(osm_type)
+        if not prefixo:
+            return None
+
+        def _pedir():
+            resposta = requests.get(
+                _URL_LOOKUP,
+                params={
+                    "osm_ids": f"{prefixo}{osm_id}",
+                    "format": "jsonv2",
+                    "polygon_geojson": 1,
+                },
+                headers={"User-Agent": _USER_AGENT},
+                timeout=10,
+            )
+            resposta.raise_for_status()
+            return resposta.json()
+
+        try:
+            resultados = com_retry(_pedir, nome="Nominatim (polígono do bairro)")
+        except Exception:
+            logger.exception("Falha ao obter o polígono do bairro no Nominatim, mesmo depois de repetir")
+            return None
+
+        if not resultados:
+            return None
+
+        geojson = resultados[0].get("geojson")
+        if not geojson or geojson.get("type") not in ("Polygon", "MultiPolygon"):
+            return None
+
+        return geojson
 
     @staticmethod
     def _extrair_geometria(resultado):

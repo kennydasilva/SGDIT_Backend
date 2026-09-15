@@ -1,5 +1,10 @@
+from api.helper.geo import bounds_do_poligono, ponto_dentro_poligono, recortar_sobreposicao
 from api.model.jurisdicao import ViaJurisdicao
 from api.model.user import Admin
+
+
+class ZonaSobrepostaError(Exception):
+    """A área pedida para a zona já pertence inteiramente a zona(s) existentes."""
 
 
 class JurisdicaoService:
@@ -20,6 +25,45 @@ class JurisdicaoService:
         return via
 
     @staticmethod
+    def adicionar_zona(admin_id, nome, place_id, poligono_geojson):
+        """
+        Atribui uma zona (contorno real de um bairro) a um posto - igual ao
+        `adicionar_via`, mas para polígonos, com o mesmo comportamento do
+        `resolveClippedMultiPolygon` do TruckFreightEasy: se a forma pedida
+        cruza com zonas já existentes (de qualquer posto - uma zona só pode
+        pertencer a um posto de cada vez), a parte já coberta é recortada
+        automaticamente antes de guardar. As zonas nunca ficam sobrepostas.
+
+        Levanta `ZonaSobrepostaError` se, depois de recortar contra tudo o
+        que já existe, não sobrar nenhuma área (a forma pedida já pertencia
+        inteiramente a outra(s) zona(s)).
+        """
+        poligonos_existentes = [
+            geometria["polygon"]
+            for geometria in ViaJurisdicao.objects.exclude(geometria__isnull=True).values_list("geometria", flat=True)
+            if geometria and geometria.get("polygon")
+        ]
+
+        poligono_recortado = recortar_sobreposicao(poligono_geojson, poligonos_existentes)
+        if poligono_recortado is None:
+            raise ZonaSobrepostaError(
+                "Esta área já pertence inteiramente a uma zona existente (de qualquer posto)."
+            )
+
+        bounds = bounds_do_poligono(poligono_recortado)
+        centro = {
+            "lat": (bounds["north"] + bounds["south"]) / 2,
+            "lng": (bounds["east"] + bounds["west"]) / 2,
+        }
+
+        return JurisdicaoService.adicionar_via(
+            admin_id,
+            nome,
+            place_id,
+            {**centro, "bounds": bounds, "polygon": poligono_recortado},
+        )
+
+    @staticmethod
     def remover_via(admin_id, via_id):
         ViaJurisdicao.objects.filter(admin_id=admin_id, id=via_id).delete()
 
@@ -31,33 +75,40 @@ class JurisdicaoService:
     @staticmethod
     def encontrar_admin_por_localizacao(latitude, longitude):
         """
-        Determina o posto (Admin) responsável por uma coordenada, a partir
-        da área aproximada (bounds do viewport do Google) guardada em
-        ViaJurisdicao.geometria para cada via/bairro da jurisdição.
+        Determina o posto (Admin) responsável por uma coordenada.
 
-        Não é o traçado exato da via nem o polígono real do bairro (o Google
-        Places Autocomplete não devolve isso), mas é a mesma aproximação já
-        usada para desenhar as vias no mapa de Jurisdições - suficiente para
-        decidir qual posto notificar, sem depender de nenhuma API/geometria
-        nova.
+        Duas fontes de geometria em `ViaJurisdicao.geometria`, por ordem de
+        confiança:
+        1. `polygon` (GeoJSON Polygon/MultiPolygon) - o contorno real de uma
+           "zona" (bairro inteiro), obtido do Nominatim. Testado por
+           ponto-dentro-do-polígono (preciso, segue a fronteira real).
+        2. `bounds` (rectângulo aproximado) - vias individuais ou zonas
+           antigas só com viewport. Testado por ponto dentro do rectângulo.
 
-        Como agora é possível atribuir tanto uma via específica (retângulo
-        pequeno) como um bairro inteiro (retângulo grande, ex: "Albazine"),
-        os dois podem cobrir o mesmo ponto ao mesmo tempo - por exemplo, uma
-        via só de um posto vizinho pode ter o retângulo a invadir ligeiramente
-        o bairro de outro posto. Nesses casos escolhe-se sempre o retângulo
-        de MENOR área (o match mais específico), em vez do primeiro
-        encontrado - reduz o risco de notificar o posto errado por causa de
-        sobreposição entre bounds aproximados.
+        Um polígono que bate sempre ganha a um rectângulo (é sempre mais
+        preciso). Dentro do mesmo tipo, ganha a menor área (match mais
+        específico) - reduz o risco de sobreposição entre bounds/polígonos
+        aproximados de zonas vizinhas escolher o posto errado.
         """
         if latitude is None or longitude is None:
             return None
 
-        melhor_admin = None
-        menor_area = None
+        melhor_admin_poligono, menor_area_poligono = None, None
+        melhor_admin_bounds, menor_area_bounds = None, None
 
         for via in ViaJurisdicao.objects.select_related("admin").exclude(geometria__isnull=True):
-            bounds = (via.geometria or {}).get("bounds")
+            geometria = via.geometria or {}
+
+            poligono = geometria.get("polygon")
+            if poligono and ponto_dentro_poligono(latitude, longitude, poligono):
+                bounds = bounds_do_poligono(poligono)
+                area = (bounds["north"] - bounds["south"]) * (bounds["east"] - bounds["west"])
+                if menor_area_poligono is None or area < menor_area_poligono:
+                    menor_area_poligono = area
+                    melhor_admin_poligono = via.admin
+                continue
+
+            bounds = geometria.get("bounds")
             if not bounds:
                 continue
 
@@ -70,8 +121,8 @@ class JurisdicaoService:
                 continue
 
             area = (norte - sul) * (este - oeste)
-            if menor_area is None or area < menor_area:
-                menor_area = area
-                melhor_admin = via.admin
+            if menor_area_bounds is None or area < menor_area_bounds:
+                menor_area_bounds = area
+                melhor_admin_bounds = via.admin
 
-        return melhor_admin
+        return melhor_admin_poligono or melhor_admin_bounds
