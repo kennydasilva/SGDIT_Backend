@@ -118,6 +118,7 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Backend: `NominatimService`, `OverpassService`; novos endpoints `GET vias/pesquisar`, `GET vias/pesquisar-bairro`, `GET vias/bairro/<osm_type>/<osm_id>`, `POST admin/<id>/vias-bulk` (todos Super Admin).
   - `JurisdicaoService.encontrar_admin_por_localizacao` melhorado: quando duas jurisdições se sobrepõem (bounds aproximados de vias/bairros vizinhos), escolhe agora a de **menor área** (match mais específico) em vez da primeira encontrada — reduz risco de notificar o posto errado.
   - Frontend: `Jurisdicoes.tsx` reescrito — Autocomplete do Google removido, dois novos fluxos de pesquisa (via individual / bairro inteiro com checklist). Mapa (visualização) continua a usar Google Maps, só a fonte da pesquisa mudou; formato de `geometria` guardado não mudou (sem migração de dados).
+  - **Correcção de UX, feedback imediato do utilizador**: as duas caixas de pesquisa (via / bairro) confundiam - não ficava claro qual usar para quê. Unificadas numa só: os dois tipos de resultado (via/bairro) aparecem na mesma lista, cada linha com um rótulo ("Via"/"Bairro") — clicar numa via adiciona-a logo, clicar num bairro abre a lista de vias dele para escolher.
   - **Não testado visualmente no browser.**
 
 ### ⏳ Por fazer — decisão tomada, integração adiada
