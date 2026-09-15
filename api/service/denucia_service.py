@@ -1,3 +1,5 @@
+from django.db.models import Q
+
 from api.model.user import Utilizador, Cidadao, PT
 from api.model.denuncia import Denuncia
 from .resultado_analise_service import ResultadoAnaliseService
@@ -18,8 +20,21 @@ class DenunciaService:
         return Denuncia.objects.all()
     
     @staticmethod
-    def listar_denuncias_validadas():
-        return Denuncia.objects.filter(estado="VALIDADA")
+    def listar_denuncias_validadas(admin_id=None):
+        """
+        Fila de denúncias validadas para um PT decidir. Quando `admin_id` é
+        dado (posto do PT autenticado), fica restrita às denúncias da
+        jurisdição desse posto - mais as que não têm nenhum posto
+        determinado (`admin_responsavel` vazio), que ficam visíveis a
+        todos os PT como rede de segurança enquanto a cobertura de
+        jurisdições (vias/bairros por posto) ainda não é total.
+        """
+        qs = Denuncia.objects.filter(estado="VALIDADA")
+
+        if admin_id is not None:
+            qs = qs.filter(Q(admin_responsavel_id=admin_id) | Q(admin_responsavel__isnull=True))
+
+        return qs
 
     @staticmethod
     def obter_denuncia_por_id(denuncia_id):
@@ -43,9 +58,11 @@ class DenunciaService:
     ):
         cidadao = DenunciaService.encontrar_utilizador_cidadao(cidadao_id)
 
-        admin_responsavel = None
-        if tipo_infracao == Denuncia.tipoInfracao.ACIDENTE:
-            admin_responsavel = JurisdicaoService.encontrar_admin_por_localizacao(latitude, longitude)
+        # Determina o posto responsável pela zona da denúncia, para todos os
+        # tipos (antes só Acidente) - encaminha automaticamente aos agentes
+        # do posto certo. Sem lat/lng, ou fora de qualquer jurisdição
+        # conhecida, fica sem posto (None) e cai na fila global de PT.
+        admin_responsavel = JurisdicaoService.encontrar_admin_por_localizacao(latitude, longitude)
 
         denuncia = Denuncia.objects.create(
             cidadao=cidadao,

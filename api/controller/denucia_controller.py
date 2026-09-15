@@ -275,11 +275,14 @@ class DenunciaViewSet(ViewSet):
         return self._listar_paginado(request, DenunciaService.listar_por_cidadao(cidadao_id))
 
     @swagger_auto_schema(
-        operation_description="Listar denuncias validadas (paginado; ?page=&page_size=&ordering=)"
+        operation_description="Listar denuncias validadas, restrito ao posto do PT autenticado "
+                               "(+ denuncias sem posto determinado) (paginado; ?page=&page_size=&ordering=)"
     )
     @action(detail=False, methods=["get"], url_path="pt/validadas")
     def por_validadas(self, request):
-        return self._listar_paginado(request, DenunciaService.listar_denuncias_validadas())
+        pt = getattr(request.user, "pt", None)
+        admin_id = pt.admin_id if pt else None
+        return self._listar_paginado(request, DenunciaService.listar_denuncias_validadas(admin_id))
 
     @swagger_auto_schema(
         operation_description="Listar denuncias por PT (paginado; ?page=&page_size=&ordering=)"
