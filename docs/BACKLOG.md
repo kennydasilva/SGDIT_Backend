@@ -104,6 +104,12 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 - **Padrão visual dos dashboards aplicado às últimas 3 páginas do backlog** (`cidadao/CriarDenuncia.tsx`, `cidadao/CidadaoPerfil.tsx`, `PT/PerfilPt.tsx`) — passam a usar `uiClasses.ts` (`CARD`, `INPUT`, `LABEL`, `BUTTON_PRIMARY`/`BUTTON_SECONDARY`), como as 6 páginas de gestão do Super Admin (Admins/Cidadãos/Configurações/Denúncias/Jurisdições/Policiais, feitas numa sessão anterior) e os 4 dashboards. **Com isto, o item do backlog "aplicar o padrão visual aos formulários e tabelas" fica concluído** — só falta `Relatorios.tsx`, deixado propositadamente para o fim (mock, sem endpoint de agregação, prioridade baixa a pedido do utilizador).
   - De caminho, corrigido um bug encontrado nos dois perfis (`CidadaoPerfil.tsx`, `PerfilPt.tsx`): o campo Email tinha o `disabled` trocado — ficava editável em modo de visualização e bloqueado em modo de edição. Corrigido para ficar sempre desabilitado (email nunca é alterável, igual ao resto do sistema).
   - `tsc --noEmit` sem erros. **Não testado visualmente no browser** nesta sessão.
+- **`Relatorios.tsx` (Super Admin) ligado a dados reais — deixa de ser mock. Último item do padrão visual/backlog, concluído por último a pedido do utilizador.**
+  - Backend: `GET /relatorios/resumo/` (`SuperAdminViewSet`, só Super Admin), via novo `RelatorioService` (`api/service/relatorio_service.py`) — devolve `total_denuncias`, `taxa_resolucao` (% de denúncias que já saíram de `PENDENTE`), `tempo_medio_resposta_horas`, `por_estado`, `por_tipo_infracao` e `por_mes` (últimos 6 meses, incluindo meses sem denúncias, para o gráfico não saltar).
+  - Novo campo `Denuncia.atualizado_em` (`auto_now=True`, migração `0010_denuncia_atualizado_em`) — sem isto não havia como calcular "tempo médio de resposta" (não existia nenhum timestamp de quando o estado mudou). `tempo_medio_resposta_horas` = média de `atualizado_em - data_registo` para denúncias já fora de `PENDENTE`.
+  - Frontend: `superAdminService.obterResumoRelatorios()` (cache de 30s como o resto do Super Admin) + `Relatorios.tsx` reescrito para consumir o endpoint e usar `uiClasses.ts`. Gráfico de barras por mês, pizza por estado (mesmas cores/labels de `SuperAdmin/Denuncias.tsx`, para consistência), novo gráfico de barras por tipo de infração (inclui `ACIDENTE`).
+  - Botões "Exportar PDF/Excel" (já existiam no mock, sem funcionar) ficam visíveis mas desativados com `title="Em breve"` — deixaram de fingir que funcionam; exportação real fica por implementar.
+  - `tsc --noEmit` limpo; lógica de agregação testada directamente contra a BD real (`RelatorioService.obter_resumo()`). **Não testado visualmente no browser.**
 
 ### ⏳ Por fazer — decisão tomada, integração adiada
 
@@ -134,7 +140,7 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Notificação deve ser por **SMS**, o que requer integração com **Firebase** (Cloud Messaging / alguma extensão de SMS) — ainda não configurada no projeto.
   - Falta também decidir como determinar o "agente mais próximo": os PTs só têm um campo `localizacao` em texto livre (`api/model/user.py`), sem coordenadas GPS — precisa de desenho antes de implementar.
   - **Por implementar quando a integração Firebase/SMS estiver disponível.** (Tentativa inicial de algoritmo de deteção por vídeo foi feita e descartada nesta sessão, por não corresponder ao fluxo pretendido.)
-- `Relatorios.tsx` (gráficos/analytics do Super Admin) não tem endpoint de agregação no backend — continua mock. **Prioridade baixa, a pedido do utilizador (2026-09-15): deixar para o fim, só depois de tudo o resto na lista.**
+- ~~`Relatorios.tsx` (gráficos/analytics do Super Admin) não tem endpoint de agregação no backend — continua mock.~~ **Concluído em 2026-09-15**, ver secção desse dia.
 - **Bugs/limpeza transversais no frontend ainda por fazer:**
   - `useAuth.isAuthenticated()` lê `localStorage.getItem("token")`, mas o login guarda a chave `"access"` — nunca autentica por essa via (afeta `ProtectedRoute.tsx`, que parece não estar em uso — `AppRoutes.tsx` usa `RouteGuard.tsx`).
   - Mistura de `.jsx`/`.tsx` num projeto TS (`Navbar.jsx`, `Sidebar.jsx`, `Home/index.jsx`, `colors.js`).
