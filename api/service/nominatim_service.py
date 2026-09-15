@@ -102,15 +102,23 @@ class NominatimService:
 
         bairros = [r for r in resultados if r.get("addresstype") in NominatimService._TIPOS_BAIRRO]
 
-        return [
-            {
+        resultado = []
+        for r in bairros[:limite]:
+            try:
+                lat, lng = float(r["lat"]), float(r["lon"])
+            except (KeyError, TypeError, ValueError):
+                lat = lng = None
+
+            resultado.append({
                 "nome": r.get("name") or r.get("display_name"),
                 "display_name": r.get("display_name"),
                 "osm_type": r.get("osm_type"),
                 "osm_id": r.get("osm_id"),
-            }
-            for r in bairros[:limite]
-        ]
+                "lat": lat,
+                "lng": lng,
+            })
+
+        return resultado
 
     @staticmethod
     def _extrair_geometria(resultado):
