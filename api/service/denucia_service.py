@@ -1,6 +1,7 @@
 from api.model.user import Utilizador, Cidadao, PT
 from api.model.denuncia import Denuncia
 from .resultado_analise_service import ResultadoAnaliseService
+from .jurisdicao_service import JurisdicaoService
 # @kenny dasilva
 # Servico de gestao de denuncia (denuncia)
 # Responsabilidades: 
@@ -42,6 +43,10 @@ class DenunciaService:
     ):
         cidadao = DenunciaService.encontrar_utilizador_cidadao(cidadao_id)
 
+        admin_responsavel = None
+        if tipo_infracao == Denuncia.tipoInfracao.ACIDENTE:
+            admin_responsavel = JurisdicaoService.encontrar_admin_por_localizacao(latitude, longitude)
+
         denuncia = Denuncia.objects.create(
             cidadao=cidadao,
             matricula=matricula,
@@ -52,7 +57,8 @@ class DenunciaService:
             latitude=latitude,
             longitude=longitude,
             descricao_pt="",
-            codigo_legal=""
+            codigo_legal="",
+            admin_responsavel=admin_responsavel
         )
 
         cidadao.numero_denuncias += 1
@@ -99,6 +105,26 @@ class DenunciaService:
     def listar_por_pt(pt_id):
         pt = DenunciaService.encontrar_utilizador_PT(pt_id)
         return Denuncia.objects.filter(pt_id=pt.id)
+
+    @staticmethod
+    def listar_acidentes_por_admin(admin_id):
+        return Denuncia.objects.filter(
+            admin_responsavel_id=admin_id,
+            tipo_infracao=Denuncia.tipoInfracao.ACIDENTE
+        )
+
+    @staticmethod
+    def designar_pt_acidente(denuncia_id, pt_id):
+        """
+        O Admin do posto responsável escolhe qual agente vai ao local do
+        acidente. Só troca o PT atribuído - não mexe no `estado`, essa
+        decisão (validar/rejeitar) continua a ser do próprio PT depois de
+        atender a ocorrência.
+        """
+        denuncia = Denuncia.objects.get(id=denuncia_id)
+        denuncia.pt = DenunciaService.encontrar_utilizador_PT(pt_id)
+        denuncia.save()
+        return denuncia
 
     @staticmethod  
     def encontrar_utilizador_cidadao(utilizador_id):
