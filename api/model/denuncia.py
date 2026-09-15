@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
-from .user import Cidadao, PT
+from .user import Cidadao, PT, Admin
 
 class Denuncia(models.Model):
 
@@ -44,6 +44,7 @@ class Denuncia(models.Model):
         CONTRAMAO = "CONTRAMAO", "contramao"
         PARADO = "PARADO", "parado"
         VELOCIDADE = "VELOCIDADE", "velocidade"
+        ACIDENTE = "ACIDENTE", "acidente"
 
     tipo_infracao = models.CharField(
     max_length=20,
@@ -55,6 +56,20 @@ class Denuncia(models.Model):
     localizacao = models.CharField(max_length=255, null=True, blank=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+
+    # Só usado para tipo_infracao=ACIDENTE: posto cuja jurisdição cobre a
+    # localização do acidente (via ViaJurisdicao), determinado
+    # automaticamente na criação. É o Admin deste posto que recebe a
+    # notificação e designa o(s) agente(s) que vão ao local - nunca se
+    # notifica todos os agentes, cada posto só vê e decide sobre a sua
+    # própria jurisdição.
+    admin_responsavel = models.ForeignKey(
+        Admin,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="denuncias_acidente"
+    )
 
     def __str__(self):
         return f"Denuncia {self.id}"

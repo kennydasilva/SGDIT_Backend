@@ -16,7 +16,10 @@ class DenunciaCreateSerializer(serializers.Serializer):
     tipo_infracao = serializers.ChoiceField(choices=Denuncia.tipoInfracao.choices)
     sentido_direccao = serializers.CharField(max_length=255, allow_null=True)
     localizacao = serializers.CharField(max_length=255)
-    caminho_ficheiro = serializers.FileField()
+    caminho_ficheiro = serializers.FileField(
+        required=False,
+        help_text="Obrigatório para todos os tipos excepto ACIDENTE (reporte direto, sem análise de vídeo)."
+    )
 
 
 class DenunciaResponseSerializer(serializers.Serializer):

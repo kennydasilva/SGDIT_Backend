@@ -27,3 +27,31 @@ class JurisdicaoService:
     def encontrar_admin_por_place_id(place_id):
         via = ViaJurisdicao.objects.filter(place_id=place_id).select_related("admin").first()
         return via.admin if via else None
+
+    @staticmethod
+    def encontrar_admin_por_localizacao(latitude, longitude):
+        """
+        Determina o posto (Admin) responsável por uma coordenada, a partir
+        da área aproximada (bounds do viewport do Google) guardada em
+        ViaJurisdicao.geometria para cada via da jurisdição.
+
+        Não é o traçado exato da via (o Google Places Autocomplete não
+        devolve isso), mas é a mesma aproximação já usada para desenhar as
+        vias no mapa de Jurisdições - suficiente para decidir qual posto
+        notificar, sem depender de nenhuma API/geometria nova.
+        """
+        if latitude is None or longitude is None:
+            return None
+
+        for via in ViaJurisdicao.objects.select_related("admin").exclude(geometria__isnull=True):
+            bounds = (via.geometria or {}).get("bounds")
+            if not bounds:
+                continue
+
+            if (
+                bounds.get("south") <= latitude <= bounds.get("north")
+                and bounds.get("west") <= longitude <= bounds.get("east")
+            ):
+                return via.admin
+
+        return None

@@ -3,6 +3,7 @@ from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from rest_framework.decorators import action
 
 from api.model.denuncia import Denuncia
@@ -23,8 +24,10 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.tasks.analise_task import processar_analise_async
+from api.tasks.notificacao_task import notificar_admin_acidente
 from api.helper.dataConvertion import formatar_data
 from api.pagination import PaginacaoPadrao
+from api.permissions.role_permissions import IsAdminOrSuperAdmin
 
 class DenunciaViewSet(ViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -145,21 +148,28 @@ class DenunciaViewSet(ViewSet):
         try:
 
             sentido_direccao = request.data.get("sentido_direccao")
+            tipo_infracao = request.data.get("tipo_infracao")
+            eh_acidente = tipo_infracao == Denuncia.tipoInfracao.ACIDENTE
 
             ficheiro = request.FILES.get("caminho_ficheiro")
 
-            if not ficheiro:
+            # Acidente de viação é reporte direto ao posto responsável, sem
+            # análise de vídeo por IA (não há tempo para isso) - por isso
+            # não exige ficheiro, ao contrário dos outros tipos de denúncia.
+            if not ficheiro and not eh_acidente:
                 return Response({"error": "Ficheiro não enviado"}, status=400)
 
-            if not ficheiro.name.endswith(('.mp4', '.avi', '.mov')):
-                return Response({"error": "Formato inválido"}, status=400)
+            if ficheiro:
+                formatos_validos = ('.mp4', '.avi', '.mov', '.jpg', '.jpeg', '.png') if eh_acidente else ('.mp4', '.avi', '.mov')
+                if not ficheiro.name.lower().endswith(formatos_validos):
+                    return Response({"error": "Formato inválido"}, status=400)
 
-            max_size_mb = getattr(settings, "DENUNCIA_VIDEO_MAX_SIZE_MB", 100)
-            if ficheiro.size > max_size_mb * 1024 * 1024:
-                return Response(
-                    {"error": f"Vídeo demasiado grande (máximo {max_size_mb}MB). Reduza a duração ou a qualidade do vídeo."},
-                    status=400
-                )
+                max_size_mb = getattr(settings, "DENUNCIA_VIDEO_MAX_SIZE_MB", 100)
+                if ficheiro.size > max_size_mb * 1024 * 1024:
+                    return Response(
+                        {"error": f"Ficheiro demasiado grande (máximo {max_size_mb}MB). Reduza a duração/qualidade."},
+                        status=400
+                    )
 
             def _para_float(valor):
                 try:
@@ -171,25 +181,32 @@ class DenunciaViewSet(ViewSet):
                 request.data.get("cidadao_id"),
                 request.data.get("matricula"),
                 request.data.get("descricao"),
-                request.data.get("tipo_infracao"),
+                tipo_infracao,
                 request.data.get("localizacao"),
                 request.data.get("sentido_direccao"),
                 _para_float(request.data.get("latitude")),
                 _para_float(request.data.get("longitude"))
             )
 
-            evidencia = EvidenciaService.criar_evidencia(denuncia, ficheiro)
+            if ficheiro:
+                EvidenciaService.criar_evidencia(denuncia, ficheiro)
 
-            
-            processar_analise_async.apply_async(
-                args=[
-                    denuncia.tipo_infracao,
-                    evidencia.caminho_ficheiro.path,
-                    denuncia.id,
-                    sentido_direccao
-                ],
-                countdown=5
-            )
+            if eh_acidente:
+                # Notifica só o Admin do posto cuja jurisdição cobre o local
+                # (já determinado em criar_denuncia) - nunca todos os
+                # agentes; é o Admin que decide quem vai ao local.
+                notificar_admin_acidente.apply_async(args=[denuncia.id], countdown=2)
+            else:
+                evidencia = EvidenciaService.obter_evidencia(denuncia.id)
+                processar_analise_async.apply_async(
+                    args=[
+                        denuncia.tipo_infracao,
+                        evidencia.caminho_ficheiro.path,
+                        denuncia.id,
+                        sentido_direccao
+                    ],
+                    countdown=5
+                )
 
             return Response(
                 {"message": "Denuncia criada com sucesso", "id": denuncia.id},
@@ -197,7 +214,7 @@ class DenunciaViewSet(ViewSet):
             )
 
         except Exception as e:
-            
+
             traceback.print_exc()
             return Response({"error": str(e)}, status=500)
 
@@ -271,8 +288,42 @@ class DenunciaViewSet(ViewSet):
     def por_pt(self, request, pt_id=None):
         return self._listar_paginado(request, DenunciaService.listar_por_pt(pt_id))
 
+    @swagger_auto_schema(
+        operation_description="Listar acidentes de viação na jurisdição de um Admin, "
+                               "por atribuir a um agente (paginado; ?page=&page_size=&ordering=)"
+    )
+    @action(
+        detail=False, methods=["get"],
+        url_path="admin/(?P<admin_id>[^/.]+)/acidentes",
+        permission_classes=[IsAdminOrSuperAdmin]
+    )
+    def acidentes_por_admin(self, request, admin_id=None):
+        return self._listar_paginado(request, DenunciaService.listar_acidentes_por_admin(admin_id))
 
+    @swagger_auto_schema(
+        operation_description="Admin designa o agente (PT) que vai atender um acidente na sua jurisdição",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "denuncia_id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "pt_id": openapi.Schema(type=openapi.TYPE_INTEGER),
+            }
+        )
+    )
+    @action(
+        detail=False, methods=["patch"],
+        url_path="admin/designar-pt",
+        permission_classes=[IsAdminOrSuperAdmin]
+    )
+    def designar_pt_acidente(self, request):
+        denuncia_id = request.data.get("denuncia_id")
+        pt_id = request.data.get("pt_id")
 
+        if not denuncia_id or not pt_id:
+            return Response({"error": "denuncia_id e pt_id são obrigatórios"}, status=400)
+
+        denuncia = DenunciaService.designar_pt_acidente(denuncia_id, pt_id)
+        return Response({"message": "Agente designado", "id": denuncia.id})
 
     def preparar_denuncia(denuncia, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada):
         data={
@@ -285,6 +336,8 @@ class DenunciaViewSet(ViewSet):
                 "latitude": denuncia.latitude,
                 "longitude": denuncia.longitude,
                 "sentido_direccao": denuncia.sentido_direccao,
+                "pt_id": denuncia.pt_id,
+                "admin_responsavel_id": denuncia.admin_responsavel_id,
                 "ficheiro_processado": ficheiro_processado,
                 "ficheiro_original": ficheiro_original,
                 "data_captura": data_captura_formatada,
