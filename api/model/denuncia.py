@@ -27,6 +27,10 @@ class Denuncia(models.Model):
     )
 
     data_registo = models.DateTimeField(auto_now_add=True)
+    # Actualizado sempre que a denúncia é gravada (ex: PT decide o `estado`).
+    # Usado para calcular o tempo médio de resposta em Relatórios - sem isto
+    # não há como saber quanto tempo uma denúncia ficou pendente.
+    atualizado_em = models.DateTimeField(auto_now=True)
     matricula = models.CharField(max_length=255, null=True, blank=True)
 
     estado = models.CharField(
