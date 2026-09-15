@@ -126,7 +126,7 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Notificação deve ser por **SMS**, o que requer integração com **Firebase** (Cloud Messaging / alguma extensão de SMS) — ainda não configurada no projeto.
   - Falta também decidir como determinar o "agente mais próximo": os PTs só têm um campo `localizacao` em texto livre (`api/model/user.py`), sem coordenadas GPS — precisa de desenho antes de implementar.
   - **Por implementar quando a integração Firebase/SMS estiver disponível.** (Tentativa inicial de algoritmo de deteção por vídeo foi feita e descartada nesta sessão, por não corresponder ao fluxo pretendido.)
-- `Relatorios.tsx` (gráficos/analytics do Super Admin) não tem endpoint de agregação no backend — continua mock.
+- `Relatorios.tsx` (gráficos/analytics do Super Admin) não tem endpoint de agregação no backend — continua mock. **Prioridade baixa, a pedido do utilizador (2026-09-15): deixar para o fim, só depois de tudo o resto na lista.**
 - **Bugs/limpeza transversais no frontend ainda por fazer:**
   - `useAuth.isAuthenticated()` lê `localStorage.getItem("token")`, mas o login guarda a chave `"access"` — nunca autentica por essa via (afeta `ProtectedRoute.tsx`, que parece não estar em uso — `AppRoutes.tsx` usa `RouteGuard.tsx`).
   - Mistura de `.jsx`/`.tsx` num projeto TS (`Navbar.jsx`, `Sidebar.jsx`, `Home/index.jsx`, `colors.js`).
