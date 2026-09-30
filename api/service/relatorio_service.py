@@ -28,13 +28,16 @@ class RelatorioService:
         for linha in Denuncia.objects.exclude(tipo_infracao__isnull=True).values("tipo_infracao").annotate(total=Count("id")):
             por_tipo_infracao[linha["tipo_infracao"]] = linha["total"]
 
-        pendentes = por_estado.get(Denuncia.Estado.PENDENTE, 0)
+        # Acidente "encaminhado" ao posto ainda não teve resposta - só conta
+        # como respondido quando o Admin designa um agente (EM_ATENDIMENTO).
+        sem_resposta = [Denuncia.Estado.PENDENTE, Denuncia.Estado.ENCAMINHADA]
+        pendentes = sum(por_estado.get(e, 0) for e in sem_resposta)
         decididas = total - pendentes
         taxa_resolucao = round((decididas / total) * 100, 1) if total else 0.0
 
         tempo_medio = (
             Denuncia.objects
-            .exclude(estado=Denuncia.Estado.PENDENTE)
+            .exclude(estado__in=sem_resposta)
             .annotate(tempo_resposta=F("atualizado_em") - F("data_registo"))
             .aggregate(media=Avg("tempo_resposta"))["media"]
         )

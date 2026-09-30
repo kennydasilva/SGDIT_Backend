@@ -10,6 +10,10 @@ class Denuncia(models.Model):
         REJEITADA = "REJEITADA", "Rejeitada"
         APROVADA = "APROVADA", "Aprovada"
         ARQUIVADA = "ARQUIVADA", "Arquivada"
+        # Só para ACIDENTE, que não passa por análise de vídeo nem pela
+        # fila de validação do PT: vai directo ao Admin do posto da zona.
+        ENCAMINHADA = "ENCAMINHADA", "Encaminhada ao posto"
+        EM_ATENDIMENTO = "EM_ATENDIMENTO", "Agente designado"
        
 
     cidadao = models.ForeignKey(

@@ -18,6 +18,7 @@ from api.Analise.Contramao import main_contramao
 from api.Analise.parado import main_parado
 from api.Analise.velocidade import main_velocidade
 from api.service.evidencia_service import EvidenciaService
+import re
 import threading
 import traceback
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -153,6 +154,10 @@ class DenunciaViewSet(ViewSet):
 
             ficheiro = request.FILES.get("caminho_ficheiro")
 
+            matricula = (request.data.get("matricula") or "").strip()
+            if not re.fullmatch(r"[A-Za-z]{2}-\d{2}-[A-Za-z]{2}", matricula):
+                return Response({"error": "Matrícula inválida (formato AB-12-CD)"}, status=400)
+
             # Acidente de viação é reporte direto ao posto responsável, sem
             # análise de vídeo por IA (não há tempo para isso) - por isso
             # não exige ficheiro, ao contrário dos outros tipos de denúncia.
@@ -179,7 +184,7 @@ class DenunciaViewSet(ViewSet):
 
             denuncia = DenunciaService.criar_denuncia(
                 request.data.get("cidadao_id"),
-                request.data.get("matricula"),
+                matricula.upper(),
                 request.data.get("descricao"),
                 tipo_infracao,
                 request.data.get("localizacao"),

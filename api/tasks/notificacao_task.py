@@ -24,8 +24,15 @@ def notificar_admin_acidente(denuncia_id):
     if not admin or not admin.utilizador.numero:
         return
 
+    # Endereços do Google podem ser longos: corta para a mensagem caber
+    # num só SMS (160 caracteres) - o endereço completo está no painel.
     local = denuncia.localizacao or "local nao especificado"
-    mensagem = f"SGDIT: Acidente de viacao reportado em {local}. Denuncia #{denuncia.id}. Designe um agente no painel."
+    if len(local) > 60:
+        local = local[:57].rstrip(" ,") + "..."
+    mensagem = (
+        f"SGDIT: Nova denuncia de acidente de viacao em {local} (#{denuncia.id}). "
+        f"Designe um agente no painel."
+    )
 
     SmsService.enviar_sms(admin.utilizador.numero, mensagem)
 
