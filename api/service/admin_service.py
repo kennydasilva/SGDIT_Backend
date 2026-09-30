@@ -3,13 +3,14 @@ from api.model.user import Utilizador,Admin
 class AdminService:
 
     @staticmethod
-    def criar_admin(nome, email, password, posto):
+    def criar_admin(nome, email, password, posto, numero=None):
 
         utilizador =Utilizador.objects.create_user(
             username=email,
             email=email,
             password=password,
             nome=nome,
+            numero=numero,
             role="ADMIN"
         )
 
@@ -31,12 +32,16 @@ class AdminService:
         return Admin.objects.get(id=admin_id)
     
     @staticmethod
-    def actualizar_admin(admin_id, nome=None, posto=None):
+    def actualizar_admin(admin_id, nome=None, posto=None, numero=None):
 
         admin=Admin.objects.get(id=admin_id)
 
         if nome:
             admin.utilizador.nome=nome
+            admin.utilizador.save()
+
+        if numero:
+            admin.utilizador.numero=numero
             admin.utilizador.save()
 
         if posto:

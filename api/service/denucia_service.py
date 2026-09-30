@@ -131,15 +131,28 @@ class DenunciaService:
         )
 
     @staticmethod
-    def designar_pt_acidente(denuncia_id, pt_id):
+    def designar_pt_acidente(denuncia_id, pt_id, admin_id):
         """
         O Admin do posto responsável escolhe qual agente vai ao local do
         acidente. Só troca o PT atribuído - não mexe no `estado`, essa
         decisão (validar/rejeitar) continua a ser do próprio PT depois de
         atender a ocorrência.
+
+        Só aceita acidentes da jurisdição deste Admin e agentes do seu
+        próprio posto (`pt_id` é o id do PT, não do utilizador).
         """
-        denuncia = Denuncia.objects.get(id=denuncia_id)
-        denuncia.pt = DenunciaService.encontrar_utilizador_PT(pt_id)
+        denuncia = Denuncia.objects.get(
+            id=denuncia_id,
+            admin_responsavel_id=admin_id,
+            tipo_infracao=Denuncia.tipoInfracao.ACIDENTE
+        )
+
+        try:
+            pt = PT.objects.get(id=pt_id, admin_id=admin_id)
+        except PT.DoesNotExist:
+            raise ValueError("Agente não pertence a este posto")
+
+        denuncia.pt = pt
         denuncia.save()
         return denuncia
 

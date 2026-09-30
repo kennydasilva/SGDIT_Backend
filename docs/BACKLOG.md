@@ -82,6 +82,21 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 - **Vias da jurisdição passam a ser desenhadas no mapa** (antes só mostrava um pino no ponto central). Ao adicionar uma via, guarda-se também o `viewport` que o Google Places devolve para esse local (área retangular aproximada), desenhado como retângulo semi-transparente sobre o mapa, além do marcador. Não é o traçado exato da estrada (o Google não devolve isso via Places Autocomplete, só a Directions/Roads API com origem/destino conhecidos) — nota no ecrã a deixar isso claro. _(commit `e6d10c6`)_
 - **Combobox de postos policiais reais de Maputo ao criar Admin** — lista levantada pelo utilizador (WLSA Moçambique, ACIPOL, documentação municipal), 22 postos/esquadras confirmados, com "Outro (não está na lista)" para os que faltam (decisão do utilizador: deixar assim por agora, lista propositadamente incompleta). Mesmo padrão combobox-com-fallback usado em Configurações, para evitar erros de digitação no nome do posto — importante porque a jurisdição associa vias a este campo. _(commit `195f0b7`)_
 
+## 2026-09-30
+
+### ✅ Concluído
+
+- **Acidente de viação fechado ponta-a-ponta, com SMS real via MozeSMS em vez de Firebase** (decisão do utilizador: "não vamos mais utilizar firebase, utilizaremos sms real"). O SMS vai **só para o Admin do posto cuja jurisdição cobre o ponto do acidente** - é ele que designa o agente para o local (confirmado outra vez pelo utilizador, por causa das jurisdições); os agentes não recebem SMS.
+  - Backend: `SmsService` (`api/service/sms_service.py`) - `POST https://api.mozesms.com/sms/send` com `X-API-Key`/`X-API-Secret` (endpoint confirmado a responder 401 sem credenciais). Credenciais em Configurações: `MOZESMS_API_KEY`, `MOZESMS_API_SECRET`, `MOZESMS_SENDER_ID` (opcional). Normaliza o número para `258XXXXXXXXX`; tira acentos da mensagem (acentos forçam Unicode: 70 caracteres por SMS em vez de 160). Best-effort, nunca rebenta a criação da denúncia.
+  - `notificar_admin_acidente` passa a enviar SMS para `Admin.utilizador.numero`. **Sem retry automático** (antes tinha 3): um SMS já aceite e repetido chegaria em duplicado e seria cobrado outra vez.
+  - Firebase removido por completo: `firebase_service.py`, `PATCH /auth/fcm-token/`, campo `Utilizador.fcm_token` (migração `0011_remover_fcm_token`).
+  - Admin passa a ter telemóvel (`numero`) no criar/editar/listar de `/admins/` - antes não havia número nenhum para onde mandar o SMS.
+  - **Falha de segurança corrigida:** `GET denuncias/admin/<admin_id>/acidentes` deixava qualquer Admin ver os acidentes de outro posto só mudando o id no URL. Passa a `GET denuncias/admin/acidentes/`, com o posto lido do token. `PATCH denuncias/admin/designar-pt/` só aceita acidentes da própria jurisdição e agentes do próprio posto (`pt_id` = id do PT). `preparar_denuncia` passa a devolver `data_registo`.
+  - Testado contra a BD real, dentro de uma transacção revertida no fim (nada ficou gravado): acidente num ponto de Mavalane → `admin_responsavel` = Mavalane → SMS montado para o número do Admin; designar agente do posto → 200; agente de outro posto → 400; Admin de outro posto → 404 e lista vazia; cidadão → 403. O envio para a MozeSMS foi testado com o pedido HTTP simulado (sucesso, 402 sem créditos, excepção, sem configuração). **Ainda não foi enviado nenhum SMS real** - falta a conta/credenciais MozeSMS.
+  - Frontend: `CriarDenuncia.tsx` ganhou "Acidente de Viação" (matrícula e ficheiro opcionais, aceita foto; ponto no mapa obrigatório, porque é ele que decide qual posto é avisado); nova página `Admin/Acidentes.tsx` (item "Acidentes" na sidebar) - lista os acidentes da jurisdição, link para o mapa/evidência, escolhe e designa o agente; `SuperAdmin/Admins.tsx` com campo Telemóvel obrigatório (+258) e coluna com aviso "Sem número (não recebe SMS)"; Configurações com as chaves MozeSMS no lugar das do Firebase. De caminho: `handleUpdate` de Admins não fazia `await` à actualização (a lista recarregava antes de gravar).
+  - `tsc` sem erros novos; o Vite compila as páginas novas. **Não testado visualmente no browser** (não havia credenciais de um Admin nesta sessão).
+  - **Para pôr a funcionar:** criar conta em my.mozesms.com → Gestão de APIs → guardar API Key/Secret em Configurações; registar o telemóvel dos Admins existentes (hoje nenhum tem); reiniciar o worker Celery para carregar a task nova.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
@@ -150,7 +165,7 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 
 ### ⏳ Por fazer — decisão tomada, integração adiada
 
-- **SMS real (telecom) para o Admin do posto — adiado a pedido do utilizador ("faremos depois isso"), decisão de fornecedor já pesquisada e pronta para quando avançar:**
+- ~~**SMS real (telecom) para o Admin do posto**~~ — **concluído em 2026-09-30 com MozeSMS** (fornecedor moçambicano escolhido pelo utilizador, em vez do Twilio abaixo), ver secção desse dia. Pesquisa original: — adiado a pedido do utilizador ("faremos depois isso"), decisão de fornecedor já pesquisada e pronta para quando avançar:**
   - **Twilio** — recomendado: trial grátis (~100 SMS/30 dias) chega mesmo ao telemóvel, cobertura de Moçambique confirmada na pricing page deles; limitação do trial: só envia para números verificados na consola, e fica restrito ao país de registo da conta (registar com número moçambicano cobre o teste em Moçambique).
   - **Vonage** — alternativa: €2 crédito grátis, chega ao telemóvel, mas só a até 5 números verificados e cada SMS sai com `[FREE SMS DEMO, TEST MESSAGE]` anexado.
   - **Africa's Talking** — descartado para fase de teste: o sandbox é só um simulador (app deles), nunca entrega a um telemóvel real; só envia SMS a sério depois de carregar saldo pago.

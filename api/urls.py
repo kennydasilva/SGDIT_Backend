@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from api.controller.auth_controller import LoginController, PasswordResetRequestController, PasswordResetConfirmController, FcmTokenController
+from api.controller.auth_controller import LoginController, PasswordResetRequestController, PasswordResetConfirmController
 from api.controller.cidadao_controller import CidadaoUserViewSet, RegistarCidadaoController
 from api.controller.admin_controller import AdminController
 from api.controller.denucia_controller import DenunciaViewSet
@@ -22,7 +22,6 @@ urlpatterns = [
     path("login/", LoginController.as_view()),
     path("password-reset/", PasswordResetRequestController.as_view()),
     path("password-reset/confirm/", PasswordResetConfirmController.as_view()),
-    path("auth/fcm-token/", FcmTokenController.as_view()),
     path("cidadaos/registrar/", RegistarCidadaoController.as_view()),
     path("admins/", AdminController.as_view()),
     path("config/publica/", ConfiguracaoPublicaController.as_view()),

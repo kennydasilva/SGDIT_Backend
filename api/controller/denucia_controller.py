@@ -27,7 +27,7 @@ from api.tasks.analise_task import processar_analise_async
 from api.tasks.notificacao_task import notificar_admin_acidente
 from api.helper.dataConvertion import formatar_data
 from api.pagination import PaginacaoPadrao
-from api.permissions.role_permissions import IsAdminOrSuperAdmin
+from api.permissions.role_permissions import IsAdmin, IsAdminOrSuperAdmin
 
 class DenunciaViewSet(ViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -292,16 +292,22 @@ class DenunciaViewSet(ViewSet):
         return self._listar_paginado(request, DenunciaService.listar_por_pt(pt_id))
 
     @swagger_auto_schema(
-        operation_description="Listar acidentes de viação na jurisdição de um Admin, "
-                               "por atribuir a um agente (paginado; ?page=&page_size=&ordering=)"
+        operation_description="Listar acidentes de viação na jurisdição do posto do Admin autenticado "
+                               "(paginado; ?page=&page_size=&ordering=)"
     )
     @action(
         detail=False, methods=["get"],
-        url_path="admin/(?P<admin_id>[^/.]+)/acidentes",
-        permission_classes=[IsAdminOrSuperAdmin]
+        url_path="admin/acidentes",
+        permission_classes=[IsAdmin]
     )
-    def acidentes_por_admin(self, request, admin_id=None):
-        return self._listar_paginado(request, DenunciaService.listar_acidentes_por_admin(admin_id))
+    def acidentes_por_admin(self, request):
+        # Posto lido do utilizador autenticado, nunca de um parâmetro do
+        # pedido - um Admin não pode ver os acidentes de outro posto.
+        admin = getattr(request.user, "admin", None)
+        if not admin:
+            return Response({"error": "Utilizador sem posto associado"}, status=403)
+
+        return self._listar_paginado(request, DenunciaService.listar_acidentes_por_admin(admin.id))
 
     @swagger_auto_schema(
         operation_description="Admin designa o agente (PT) que vai atender um acidente na sua jurisdição",
@@ -316,7 +322,7 @@ class DenunciaViewSet(ViewSet):
     @action(
         detail=False, methods=["patch"],
         url_path="admin/designar-pt",
-        permission_classes=[IsAdminOrSuperAdmin]
+        permission_classes=[IsAdmin]
     )
     def designar_pt_acidente(self, request):
         denuncia_id = request.data.get("denuncia_id")
@@ -325,7 +331,17 @@ class DenunciaViewSet(ViewSet):
         if not denuncia_id or not pt_id:
             return Response({"error": "denuncia_id e pt_id são obrigatórios"}, status=400)
 
-        denuncia = DenunciaService.designar_pt_acidente(denuncia_id, pt_id)
+        admin = getattr(request.user, "admin", None)
+        if not admin:
+            return Response({"error": "Utilizador sem posto associado"}, status=403)
+
+        try:
+            denuncia = DenunciaService.designar_pt_acidente(denuncia_id, pt_id, admin.id)
+        except Denuncia.DoesNotExist:
+            return Response({"error": "Acidente não encontrado nesta jurisdição"}, status=404)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
+
         return Response({"message": "Agente designado", "id": denuncia.id})
 
     def preparar_denuncia(denuncia, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada):
@@ -341,6 +357,7 @@ class DenunciaViewSet(ViewSet):
                 "sentido_direccao": denuncia.sentido_direccao,
                 "pt_id": denuncia.pt_id,
                 "admin_responsavel_id": denuncia.admin_responsavel_id,
+                "data_registo": formatar_data(denuncia.data_registo),
                 "ficheiro_processado": ficheiro_processado,
                 "ficheiro_original": ficheiro_original,
                 "data_captura": data_captura_formatada,

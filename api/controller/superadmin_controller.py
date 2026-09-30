@@ -91,7 +91,7 @@ class SuperAdminViewSet(ViewSet):
         return Response({"message": "Estado do cidadão atualizado"})
 
     # Listar (GET) ou criar/atualizar (POST) credenciais de integrações
-    # externas (Google Maps, Firebase, etc.). Valores nunca são devolvidos
+    # externas (Google Maps, MozeSMS, etc.). Valores nunca são devolvidos
     # em claro - só mascarados.
     @action(detail=False, methods=["get", "post"], url_path="config")
     def config(self, request):

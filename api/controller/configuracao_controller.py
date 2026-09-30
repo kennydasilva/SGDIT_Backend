@@ -10,7 +10,7 @@ class ConfiguracaoPublicaController(APIView):
     Devolve só as credenciais marcadas como 'publica' (ex: chave JS do
     Google Maps, protegida por restrição de domínio na Google Cloud
     Console) - acessível a qualquer utilizador autenticado, nunca a
-    segredos de servidor (ex: Firebase Admin SDK).
+    segredos de servidor (ex: API Secret da MozeSMS).
     """
 
     @swagger_auto_schema(
