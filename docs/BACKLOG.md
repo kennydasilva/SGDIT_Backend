@@ -84,9 +84,9 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 
 ## 2026-09-30
 
-### ✅ Concluído
+### 🔄 Em progresso — implementado, aguarda validação do utilizador
 
-- **Acidente de viação fechado ponta-a-ponta, com SMS real via MozeSMS em vez de Firebase** (decisão do utilizador: "não vamos mais utilizar firebase, utilizaremos sms real"). O SMS vai **só para o Admin do posto cuja jurisdição cobre o ponto do acidente** - é ele que designa o agente para o local (confirmado outra vez pelo utilizador, por causa das jurisdições); os agentes não recebem SMS.
+- **Acidente de viação ponta-a-ponta, com SMS real via MozeSMS em vez de Firebase** (decisão do utilizador: "não vamos mais utilizar firebase, utilizaremos sms real"). O SMS vai **só para o Admin do posto cuja jurisdição cobre o ponto do acidente** - é ele que designa o agente para o local (confirmado outra vez pelo utilizador, por causa das jurisdições); os agentes não recebem SMS.
   - Backend: `SmsService` (`api/service/sms_service.py`) - `POST https://api.mozesms.com/sms/send` com `X-API-Key`/`X-API-Secret` (endpoint confirmado a responder 401 sem credenciais). Credenciais em Configurações: `MOZESMS_API_KEY`, `MOZESMS_API_SECRET`, `MOZESMS_SENDER_ID` (opcional). Normaliza o número para `258XXXXXXXXX`; tira acentos da mensagem (acentos forçam Unicode: 70 caracteres por SMS em vez de 160). Best-effort, nunca rebenta a criação da denúncia.
   - `notificar_admin_acidente` passa a enviar SMS para `Admin.utilizador.numero`. **Sem retry automático** (antes tinha 3): um SMS já aceite e repetido chegaria em duplicado e seria cobrado outra vez.
   - Firebase removido por completo: `firebase_service.py`, `PATCH /auth/fcm-token/`, campo `Utilizador.fcm_token` (migração `0011_remover_fcm_token`).
@@ -165,7 +165,7 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 
 ### ⏳ Por fazer — decisão tomada, integração adiada
 
-- ~~**SMS real (telecom) para o Admin do posto**~~ — **concluído em 2026-09-30 com MozeSMS** (fornecedor moçambicano escolhido pelo utilizador, em vez do Twilio abaixo), ver secção desse dia. Pesquisa original: — adiado a pedido do utilizador ("faremos depois isso"), decisão de fornecedor já pesquisada e pronta para quando avançar:**
+- **SMS real (telecom) para o Admin do posto** — 🔄 implementado em 2026-09-30 com MozeSMS (fornecedor moçambicano escolhido pelo utilizador, em vez do Twilio abaixo), **por validar pelo utilizador**, ver secção desse dia. Pesquisa original: — adiado a pedido do utilizador ("faremos depois isso"), decisão de fornecedor já pesquisada e pronta para quando avançar:**
   - **Twilio** — recomendado: trial grátis (~100 SMS/30 dias) chega mesmo ao telemóvel, cobertura de Moçambique confirmada na pricing page deles; limitação do trial: só envia para números verificados na consola, e fica restrito ao país de registo da conta (registar com número moçambicano cobre o teste em Moçambique).
   - **Vonage** — alternativa: €2 crédito grátis, chega ao telemóvel, mas só a até 5 números verificados e cada SMS sai com `[FREE SMS DEMO, TEST MESSAGE]` anexado.
   - **Africa's Talking** — descartado para fase de teste: o sandbox é só um simulador (app deles), nunca entrega a um telemóvel real; só envia SMS a sério depois de carregar saldo pago.
