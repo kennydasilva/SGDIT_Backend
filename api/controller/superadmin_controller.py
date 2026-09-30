@@ -12,6 +12,10 @@ from api.service.jurisdicao_service import JurisdicaoService, ZonaSobrepostaErro
 from api.service.nominatim_service import NominatimService
 from api.service.overpass_service import OverpassService
 from api.pagination import PaginacaoPadrao
+from api.helper.geo import area_km2
+from api.model.denuncia import Denuncia
+from api.model.user import Admin
+from django.utils import timezone
 
 
 def _mascarar(valor):
@@ -221,11 +225,60 @@ class SuperAdminViewSet(ViewSet):
                 "nome_via": v.nome_via,
                 "place_id": v.place_id,
                 "geometria": v.geometria,
+                "area_km2": area_km2((v.geometria or {}).get("polygon")),
             }
             for v in vias
         ]
 
         return Response(data)
+
+    @swagger_auto_schema(
+        operation_description="Jurisdições de todos os postos ao mesmo tempo (vias e zonas, com a área "
+                               "das zonas em km² e o total por posto) - para ver buracos e sobreposições"
+    )
+    @action(detail=False, methods=["get"], url_path="jurisdicoes/visao-geral")
+    def jurisdicoes_visao_geral(self, request):
+        postos = []
+        for admin in Admin.objects.order_by("posto").prefetch_related("vias_jurisdicao"):
+            itens = []
+            for v in admin.vias_jurisdicao.all():
+                area = area_km2((v.geometria or {}).get("polygon"))
+                itens.append({"id": v.id, "nome_via": v.nome_via, "geometria": v.geometria, "area_km2": area})
+            postos.append({
+                "admin_id": admin.id,
+                "posto": admin.posto,
+                "total_zonas": sum(1 for i in itens if i["area_km2"] is not None),
+                "total_vias": sum(1 for i in itens if i["area_km2"] is None),
+                "area_km2_total": round(sum(i["area_km2"] or 0 for i in itens), 2),
+                "itens": itens,
+            })
+        return Response(postos)
+
+    @swagger_auto_schema(
+        operation_description="Denúncias fora de qualquer jurisdição (sem posto), com coordenadas - "
+                               "mostra onde faltam zonas"
+    )
+    @action(detail=False, methods=["get"], url_path="jurisdicoes/cobertura")
+    def jurisdicoes_cobertura(self, request):
+        sem_posto = Denuncia.objects.filter(admin_responsavel__isnull=True)
+        com_coordenadas = sem_posto.exclude(latitude__isnull=True).exclude(longitude__isnull=True)
+        return Response({
+            "total_sem_posto": sem_posto.count(),
+            "sem_coordenadas": sem_posto.count() - com_coordenadas.count(),
+            "total_denuncias": Denuncia.objects.count(),
+            "pontos": [
+                {
+                    "id": d.id,
+                    "tipo_infracao": d.tipo_infracao,
+                    "estado": d.estado,
+                    "latitude": d.latitude,
+                    "longitude": d.longitude,
+                    "localizacao": d.localizacao,
+                    "data_registo": timezone.localtime(d.data_registo).strftime("%d/%m/%Y %H:%M"),
+                }
+                for d in com_coordenadas.order_by("-data_registo")
+            ],
+        })
 
     @swagger_auto_schema(
         operation_description="Adicionar várias vias de uma vez à jurisdição de um posto "
