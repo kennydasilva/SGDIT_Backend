@@ -18,6 +18,7 @@ class Notificacao(models.Model):
         NOVA_PARA_REVISAO = "NOVA_PARA_REVISAO", "Nova denúncia para revisão"
         ACIDENTE_REPORTADO = "ACIDENTE_REPORTADO", "Acidente reportado"
         AGENTE_DESIGNADO = "AGENTE_DESIGNADO", "Designado para acidente"
+        ANALISE_FALHOU = "ANALISE_FALHOU", "Falha na análise do vídeo"
 
     utilizador = models.ForeignKey(
         Utilizador,

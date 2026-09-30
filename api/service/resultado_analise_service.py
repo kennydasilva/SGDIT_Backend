@@ -41,7 +41,7 @@ class ResultadoAnaliseService:
         # Import local: denucia_service -> resultado_analise_service já
         # importa neste sentido, evitar ciclo ao carregar os módulos.
         from api.service.notificacao_service import NotificacaoService
-        NotificacaoService.estado_alterado(denuncia)
+        NotificacaoService.estado_alterado(denuncia, origem="IA")
         if denuncia.estado == Denuncia.Estado.VALIDADA:
             NotificacaoService.nova_para_revisao(denuncia)
 
