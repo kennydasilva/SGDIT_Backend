@@ -5,6 +5,7 @@ from api.model.denuncia import Denuncia
 from .resultado_analise_service import ResultadoAnaliseService
 from .jurisdicao_service import JurisdicaoService
 from .notificacao_service import NotificacaoService
+from .duplicados_service import DuplicadosService
 # @kenny dasilva
 # Servico de gestao de denuncia (denuncia)
 # Responsabilidades: 
@@ -30,7 +31,11 @@ class DenunciaService:
         todos os PT como rede de segurança enquanto a cobertura de
         jurisdições (vias/bairros por posto) ainda não é total.
         """
-        qs = Denuncia.objects.filter(estado="VALIDADA")
+        # Relacionada cuja principal já está na fila: o grupo aparece uma
+        # só vez (na principal, com "+N testemunhas").
+        qs = Denuncia.objects.filter(estado="VALIDADA").exclude(
+            denuncia_principal__estado=Denuncia.Estado.VALIDADA
+        )
 
         if admin_id is not None:
             qs = qs.filter(Q(admin_responsavel_id=admin_id) | Q(admin_responsavel__isnull=True))
@@ -72,8 +77,22 @@ class DenunciaService:
         if tipo_infracao == Denuncia.tipoInfracao.ACIDENTE and admin_responsavel:
             estado = Denuncia.Estado.ENCAMINHADA
 
+        # Mesma infração/acidente já denunciado por outro cidadão: liga à
+        # primeira. Um acidente junta-se ao existente e herda o posto, o
+        # estado e o agente já designado.
+        principal = DuplicadosService.encontrar_principal(
+            cidadao.id, tipo_infracao, matricula, latitude, longitude
+        )
+        pt = None
+        if principal and tipo_infracao == Denuncia.tipoInfracao.ACIDENTE:
+            admin_responsavel = principal.admin_responsavel
+            estado = principal.estado
+            pt = principal.pt
+
         denuncia = Denuncia.objects.create(
             estado=estado,
+            denuncia_principal=principal,
+            pt=pt,
             cidadao=cidadao,
             matricula=matricula,
             descricao=descricao,
@@ -130,6 +149,21 @@ class DenunciaService:
                 partes.append(f"Código legal aplicado: {codigo_legal.strip().rstrip('.')}.")
             NotificacaoService.estado_alterado(denuncia, origem="PT", detalhe=" ".join(partes) or None)
 
+        # Aprovação vale para a infração: estende-se às outras denúncias
+        # abertas do mesmo grupo (testemunhas). Rejeição não - pode ser só
+        # este vídeo que não serve, as outras continuam na fila.
+        if estado == Denuncia.Estado.APROVADA:
+            raiz = denuncia.denuncia_principal or denuncia
+            grupo = Denuncia.objects.filter(
+                Q(id=raiz.id) | Q(denuncia_principal_id=raiz.id),
+                estado__in=[Denuncia.Estado.PENDENTE, Denuncia.Estado.VALIDADA],
+            ).exclude(id=denuncia.id)
+            for outra in grupo:
+                outra.pt = denuncia.pt
+                outra.estado = Denuncia.Estado.APROVADA
+                outra.save()
+                NotificacaoService.estado_alterado(outra, origem="PT")
+
         return denuncia
 
     
@@ -151,9 +185,12 @@ class DenunciaService:
 
     @staticmethod
     def listar_acidentes_por_admin(admin_id):
+        # Reportes do mesmo acidente aparecem juntos, na principal
+        # ("N reportes"), não como acidentes separados.
         return Denuncia.objects.filter(
             admin_responsavel_id=admin_id,
-            tipo_infracao=Denuncia.tipoInfracao.ACIDENTE
+            tipo_infracao=Denuncia.tipoInfracao.ACIDENTE,
+            denuncia_principal__isnull=True
         )
 
     @staticmethod
@@ -182,6 +219,14 @@ class DenunciaService:
         denuncia.save()
 
         NotificacaoService.agente_designado(denuncia)
+
+        # Os outros reportes do mesmo acidente seguem o principal - cada
+        # cidadão que reportou sabe que vai um agente a caminho.
+        for rel in denuncia.relacionadas.filter(estado__in=[Denuncia.Estado.ENCAMINHADA, Denuncia.Estado.PENDENTE]):
+            rel.pt = pt
+            rel.estado = Denuncia.Estado.EM_ATENDIMENTO
+            rel.save()
+            NotificacaoService.estado_alterado(rel)
 
         return denuncia
 

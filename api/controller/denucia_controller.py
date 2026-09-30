@@ -27,6 +27,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from api.service.resultado_analise_service import ResultadoAnaliseService
 from api.tasks.analise_task import processar_analise_async
 from api.tasks.notificacao_task import notificar_admin_acidente
+from api.service.duplicados_service import DuplicadosService
 from api.helper.dataConvertion import formatar_data
 from api.pagination import PaginacaoPadrao
 from api.permissions.role_permissions import IsAdmin, IsAdminOrSuperAdmin
@@ -148,6 +149,19 @@ class DenunciaViewSet(ViewSet):
         from django.conf import settings
 
         chave_pedido = None
+        chaves_bloqueio = []
+
+        def _recusar_duplicada(mensagem, **extra):
+            # Liberta o pedido (o cidadão pode corrigir e reenviar o mesmo
+            # formulário) e os bloqueios tomados por este pedido.
+            if chave_pedido:
+                cache.delete(chave_pedido)
+            for chave in chaves_bloqueio:
+                cache.delete(chave)
+            return Response(
+                {"error": mensagem, "codigo": "DUPLICADA", **extra},
+                status=status.HTTP_409_CONFLICT
+            )
 
         try:
 
@@ -201,10 +215,46 @@ class DenunciaViewSet(ViewSet):
                     return Response(
                         {
                             "error": "Esta denúncia já foi enviada",
+                            "codigo": "PEDIDO_REPETIDO",
                             "id": existente if isinstance(existente, int) else None,
                         },
                         status=status.HTTP_409_CONFLICT
                     )
+
+            latitude = _para_float(request.data.get("latitude"))
+            longitude = _para_float(request.data.get("longitude"))
+            cidadao = DenunciaService.encontrar_utilizador_cidadao(request.data.get("cidadao_id"))
+
+            # Regra 1: o mesmo ficheiro nunca entra em duas denúncias. O
+            # bloqueio no Redis cobre dois envios simultâneos do mesmo
+            # ficheiro (ainda nenhum gravado na BD quando ambos verificam).
+            hash_ficheiro = None
+            if ficheiro:
+                hash_ficheiro = DuplicadosService.calcular_hash(ficheiro)
+                usada = DuplicadosService.ficheiro_ja_usado(hash_ficheiro)
+                chave_hash = f"evidencia_hash:{hash_ficheiro}"
+                if usada or not cache.add(chave_hash, 1, timeout=600):
+                    # Só mostra o número se a denúncia for do próprio
+                    # cidadão - nunca revelar denúncias de outros.
+                    propria = usada and usada.denuncia.cidadao_id == cidadao.id
+                    return _recusar_duplicada(
+                        f"Este ficheiro já foi enviado na denúncia #{usada.denuncia_id}." if propria
+                        else "Este ficheiro já foi enviado numa denúncia anterior.",
+                        id=usada.denuncia_id if propria else None,
+                    )
+                chaves_bloqueio.append(chave_hash)
+
+            # Regra 2: o mesmo cidadão não abre duas denúncias para a
+            # mesma coisa enquanto a anterior não estiver fechada.
+            aberta = DuplicadosService.denuncia_aberta_do_cidadao(
+                cidadao.id, tipo_infracao, matricula, latitude, longitude
+            )
+            if aberta:
+                return _recusar_duplicada(
+                    f"Já tem uma denúncia aberta para esta ocorrência (#{aberta.id}). "
+                    "Aguarde a decisão antes de denunciar de novo.",
+                    id=aberta.id,
+                )
 
             denuncia = DenunciaService.criar_denuncia(
                 request.data.get("cidadao_id"),
@@ -213,14 +263,18 @@ class DenunciaViewSet(ViewSet):
                 tipo_infracao,
                 request.data.get("localizacao"),
                 request.data.get("sentido_direccao"),
-                _para_float(request.data.get("latitude")),
-                _para_float(request.data.get("longitude"))
+                latitude,
+                longitude
             )
 
             if ficheiro:
-                EvidenciaService.criar_evidencia(denuncia, ficheiro)
+                EvidenciaService.criar_evidencia(denuncia, ficheiro, hash_ficheiro)
 
-            if eh_acidente:
+            if eh_acidente and denuncia.denuncia_principal_id:
+                # Reporte de um acidente já reportado: o Admin já recebeu o
+                # SMS do primeiro; recebe só a notificação na aplicação.
+                pass
+            elif eh_acidente:
                 # Notifica só o Admin do posto cuja jurisdição cobre o local
                 # (já determinado em criar_denuncia) - nunca todos os
                 # agentes; é o Admin que decide quem vai ao local.
@@ -251,6 +305,8 @@ class DenunciaViewSet(ViewSet):
             # outra vez com o mesmo formulário.
             if chave_pedido:
                 cache.delete(chave_pedido)
+            for chave in chaves_bloqueio:
+                cache.delete(chave)
             traceback.print_exc()
             return Response({"error": str(e)}, status=500)
 
@@ -394,6 +450,8 @@ class DenunciaViewSet(ViewSet):
                 "pt_id": denuncia.pt_id,
                 "admin_responsavel_id": denuncia.admin_responsavel_id,
                 "data_registo": formatar_data(denuncia.data_registo),
+                "denuncia_principal_id": denuncia.denuncia_principal_id,
+                "total_relacionadas": denuncia.relacionadas.count(),
                 "ficheiro_processado": ficheiro_processado,
                 "ficheiro_original": ficheiro_original,
                 "data_captura": data_captura_formatada,
