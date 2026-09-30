@@ -6,10 +6,11 @@ class EvidenciaService:
     
 
     @staticmethod
-    def criar_evidencia(denuncia, ficheiro):
+    def criar_evidencia(denuncia, ficheiro, hash_sha256=None):
         return Evidencia.objects.create(
             denuncia=denuncia,
-            caminho_ficheiro=ficheiro
+            caminho_ficheiro=ficheiro,
+            hash_sha256=hash_sha256
         )
     
     @staticmethod

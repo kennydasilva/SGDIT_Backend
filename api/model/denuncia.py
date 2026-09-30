@@ -79,5 +79,17 @@ class Denuncia(models.Model):
         related_name="denuncias_acidente"
     )
 
+    # Mesma infração/acidente reportado por outro cidadão: fica ligada à
+    # primeira denúncia (a principal) em vez de ser tratada à parte - o
+    # agente vê "N testemunhas" e decide uma vez; num acidente, o Admin
+    # recebe um só SMS.
+    denuncia_principal = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="relacionadas"
+    )
+
     def __str__(self):
         return f"Denuncia {self.id}"

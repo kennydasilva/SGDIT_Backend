@@ -66,8 +66,15 @@ class NotificacaoService:
         Super Admins, se o ponto não cair em nenhuma jurisdição - alguém
         tem de saber que ficou sem posto)."""
         eh_acidente = denuncia.tipo_infracao == Denuncia.tipoInfracao.ACIDENTE
+        principal_id = denuncia.denuncia_principal_id
 
-        if eh_acidente and denuncia.admin_responsavel_id:
+        if principal_id and eh_acidente:
+            detalhe = ("Este acidente já tinha sido reportado por outra pessoa; o seu reporte foi juntado ao existente"
+                       + (" e já vai um agente a caminho." if denuncia.estado == Denuncia.Estado.EM_ATENDIMENTO else "."))
+        elif principal_id:
+            detalhe = ("Outro cidadão já tinha denunciado esta infração; a sua denúncia foi ligada à dele como "
+                       "testemunha e reforça o processo. O vídeo vai ser analisado automaticamente.")
+        elif eh_acidente and denuncia.admin_responsavel_id:
             detalhe = "Foi enviada ao posto policial responsável pela zona."
         elif eh_acidente:
             detalhe = "O local não pertence a nenhuma jurisdição registada; foi comunicada à administração do sistema."
@@ -86,6 +93,23 @@ class NotificacaoService:
             return
 
         local = denuncia.localizacao or "local não especificado"
+
+        if principal_id:
+            # Mesmo acidente: quem já foi avisado do primeiro reporte sabe
+            # que chegou mais um (sem novo SMS).
+            destinatarios = (
+                [denuncia.admin_responsavel.utilizador] if denuncia.admin_responsavel_id
+                else Utilizador.objects.filter(role=Utilizador.Role.SUPER_ADMIN, is_active=True)
+            )
+            NotificacaoService.notificar(
+                destinatarios,
+                Notificacao.Tipo.ACIDENTE_REPORTADO,
+                f"Novo reporte do acidente #{principal_id}",
+                f"Outra pessoa reportou o mesmo acidente em {local}.",
+                denuncia.denuncia_principal,
+            )
+            return
+
         if denuncia.admin_responsavel_id:
             destinatarios = [denuncia.admin_responsavel.utilizador]
             mensagem = f"Nova denúncia de acidente de viação em {local}. Designe um agente para o local."

@@ -27,22 +27,29 @@ class ResultadoAnaliseService:
             }
         )
 
-        if alertas > 0 :
-            denuncia.estado = "VALIDADA"
-            resultado.infracao_detectada = True
-            
-        else :
-            denuncia.estado = "REJEITADA"
-            resultado.infracao_detectada = False
-
-        denuncia.save()
+        resultado.infracao_detectada = alertas > 0
         resultado.save()
+
+        # Já decidida por um agente antes de a análise terminar (ex:
+        # aprovada junto com a denúncia principal do grupo): a análise
+        # fica registada, mas não volta a mudar o estado nem a notificar.
+        if denuncia.estado in (Denuncia.Estado.APROVADA, Denuncia.Estado.REJEITADA, Denuncia.Estado.ARQUIVADA):
+            return resultado
+
+        denuncia.estado = Denuncia.Estado.VALIDADA if alertas > 0 else Denuncia.Estado.REJEITADA
+        denuncia.save()
 
         # Import local: denucia_service -> resultado_analise_service já
         # importa neste sentido, evitar ciclo ao carregar os módulos.
         from api.service.notificacao_service import NotificacaoService
         NotificacaoService.estado_alterado(denuncia, origem="IA")
-        if denuncia.estado == Denuncia.Estado.VALIDADA:
+        # Relacionada cuja principal já está na fila: o agente já foi
+        # avisado pela principal, não repetir.
+        principal_na_fila = (
+            denuncia.denuncia_principal_id
+            and denuncia.denuncia_principal.estado == Denuncia.Estado.VALIDADA
+        )
+        if denuncia.estado == Denuncia.Estado.VALIDADA and not principal_na_fila:
             NotificacaoService.nova_para_revisao(denuncia)
 
         return resultado
