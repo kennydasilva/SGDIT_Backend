@@ -175,6 +175,8 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Testado contra a BD real: resumo e filtros (período+tipo, posto, sem posto); Admin de Mavalane a pedir o posto 1 → só vê Mavalane (também na exportação); cidadão → 403; Excel válido (2 folhas, 19 linhas); PDF válido (4 páginas, revisto em imagem: corrigidas a largura da lista, que saía da página, e um título que ficava sozinho no fim da página). Tempos de decisão/designação testados com rollback (5 h e 12 min simulados → 5,0 h e 12 min). Servidor em execução: download com o nome certo. `tsc` sem erros novos. **Não testado no browser** (sem credenciais).
   - Nos outros ambientes: `pip install -r requirements.txt` e `migrate`.
 
+- **Âmbito do acidente definido pelo utilizador: o trabalho do sistema termina quando o Admin do posto designa um agente.** O agente não "resolve" o acidente: faz a perícia no local e o processo segue para o tribunal — isso está **fora do âmbito** do SGDIT. O "ecrã de acidente do agente" (passos a caminho/no local, relatório de perícia, fotos, encaminhamento ao tribunal) chegou a ser começado e foi desfeito antes de publicar (migração revertida, nada ficou na BD nem no repositório). O estado final de um acidente no sistema é "Agente designado" (`EM_ATENDIMENTO`); o agente continua a receber a notificação de designação com o local.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
