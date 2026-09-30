@@ -160,6 +160,9 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - **Texto:** ortografia do Acordo (maioritária) e vocabulário pt-MZ/pt-PT: Guardar, Eliminar, Pesquisar, Indique, Estado, ficheiro, registo, "Agentes" em vez de "Policiais".
   - `tsc`: de 23 para 12 erros (todos anteriores). **Visto no browser:** Entrar e Registar. **As páginas internas não foram vistas no browser** (sem credenciais de teste nesta sessão). Ficou por fazer: o `confirm()` de apagar credenciais em Configurações (nativo).
 
+- **Login reposto com o visual original** (pedido do utilizador: "deixaste feio enquanto estava bonito"): a página de login voltou exactamente à versão anterior à revisão visual (círculo azul SGDIT, cartão centrado). Registar/Recuperar/Redefinir senha continuam com o estilo novo (agora diferentes do login) — **a decidir com o utilizador** se voltam ao visual do login. Com a reposição, o login voltou a não mostrar "conta criada"/"senha redefinida" e a usar `alert()` nos erros — **pode ser re-corrigido sem mexer no visual**, a decidir.
+- **"Combobox de escolher agente não funciona" (Acidentes do Admin)** — investigado com os dados reais: não era erro de código. O único acidente numa jurisdição é o de Mavalane, e Mavalane tem 0 agentes; os postos com agentes (Comando Geral, Mahotas, Mafalala) não têm acidentes. O combobox ficava vazio e desactivado, o que parecia avariado. Agora, sem agentes no posto, mostra "Sem agentes no posto. Criar agente" com link para a página de agentes. A API dos agentes devolve correctamente nos postos que os têm; a designação já tinha sido testada no backend. **Por confirmar pelo utilizador** depois de criar um agente em Mavalane.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
