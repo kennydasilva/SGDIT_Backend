@@ -163,6 +163,10 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 - **Login reposto com o visual original** (pedido do utilizador: "deixaste feio enquanto estava bonito"): a página de login voltou exactamente à versão anterior à revisão visual (círculo azul SGDIT, cartão centrado). Registar/Recuperar/Redefinir senha continuam com o estilo novo (agora diferentes do login) — **a decidir com o utilizador** se voltam ao visual do login. Com a reposição, o login voltou a não mostrar "conta criada"/"senha redefinida" e a usar `alert()` nos erros — **pode ser re-corrigido sem mexer no visual**, a decidir.
 - **"Combobox de escolher agente não funciona" (Acidentes do Admin)** — investigado com os dados reais: não era erro de código. O único acidente numa jurisdição é o de Mavalane, e Mavalane tem 0 agentes; os postos com agentes (Comando Geral, Mahotas, Mafalala) não têm acidentes. O combobox ficava vazio e desactivado, o que parecia avariado. Agora, sem agentes no posto, mostra "Sem agentes no posto. Criar agente" com link para a página de agentes. A API dos agentes devolve correctamente nos postos que os têm; a designação já tinha sido testada no backend. **Por confirmar pelo utilizador** depois de criar um agente em Mavalane.
 
+- **Credenciais MozeSMS adicionadas pelo utilizador — verificadas** (pedido só de leitura à MozeSMS, sem enviar SMS): `MOZESMS_API_KEY`/`MOZESMS_API_SECRET` válidas (saldo → 200). Encontrado e corrigido: `MOZESMS_SENDER_ID` guardado como `"\nESHOP"` (quebra de linha colada), que a MozeSMS recusaria → `ConfiguracaoService` passa a limpar espaços/quebras de linha ao guardar e ao ler (`3ea4cb4`).
+  - **Ainda impede o envio (do lado do utilizador):** saldo 0,65 MZN (cada SMS 1,35 MZN → 0 SMS possíveis); nenhum dos 5 Admins tem telemóvel registado; confirmar que o remetente "ESHOP" está aprovado na conta (a conta é a de "truck freight").
+  - **Por fazer:** SMS de teste real para um número indicado pelo utilizador, depois de haver saldo (envio pago, só com confirmação).
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
