@@ -215,7 +215,11 @@ class SuperAdminViewSet(ViewSet):
             else:
                 via = JurisdicaoService.adicionar_via(admin_id, nome_via, place_id, geometria)
 
-            return Response({"message": "Via adicionada à jurisdição", "id": via.id})
+            # Denúncias antigas sem posto que caem na nova zona/via passam
+            # para este posto.
+            reencaminhadas = JurisdicaoService.reencaminhar_sem_posto()
+
+            return Response({"message": "Via adicionada à jurisdição", "id": via.id, "reencaminhadas": reencaminhadas})
 
         vias = JurisdicaoService.listar_por_admin(admin_id)
 
@@ -307,7 +311,20 @@ class SuperAdminViewSet(ViewSet):
             JurisdicaoService.adicionar_via(admin_id, nome_via, place_id, via.get("geometria"))
             adicionadas += 1
 
-        return Response({"message": f"{adicionadas} via(s) adicionada(s) à jurisdição", "total": adicionadas})
+        reencaminhadas = JurisdicaoService.reencaminhar_sem_posto()
+        return Response({
+            "message": f"{adicionadas} via(s) adicionada(s) à jurisdição",
+            "total": adicionadas,
+            "reencaminhadas": reencaminhadas,
+        })
+
+    @swagger_auto_schema(
+        operation_description="Reencaminhar para o posto certo as denúncias abertas sem posto que já "
+                               "caem numa jurisdição (com as zonas/vias actuais)"
+    )
+    @action(detail=False, methods=["post"], url_path="jurisdicoes/reencaminhar")
+    def jurisdicoes_reencaminhar(self, request):
+        return Response(JurisdicaoService.reencaminhar_sem_posto())
 
     @swagger_auto_schema(
         operation_description="Remover uma via da jurisdição de um posto"
