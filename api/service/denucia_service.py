@@ -4,6 +4,7 @@ from api.model.user import Utilizador, Cidadao, PT
 from api.model.denuncia import Denuncia
 from .resultado_analise_service import ResultadoAnaliseService
 from .jurisdicao_service import JurisdicaoService
+from .notificacao_service import NotificacaoService
 # @kenny dasilva
 # Servico de gestao de denuncia (denuncia)
 # Responsabilidades: 
@@ -89,13 +90,20 @@ class DenunciaService:
         cidadao.numero_denuncias += 1
         cidadao.save()
 
+        NotificacaoService.denuncia_criada(denuncia)
+
         return denuncia
 
     @staticmethod
     def actualizar_estado(denuncia_id, estado):
         denuncia = Denuncia.objects.get(id=denuncia_id)
+        estado_anterior = denuncia.estado
         denuncia.estado = estado
         denuncia.save()
+
+        if denuncia.estado != estado_anterior:
+            NotificacaoService.estado_alterado(denuncia)
+
         return denuncia
 
 
@@ -109,9 +117,14 @@ class DenunciaService:
         analise.save()
 
         denuncia.pt = DenunciaService.encontrar_utilizador_PT(pt_id)
+        estado_anterior = denuncia.estado
         denuncia.estado = estado
 
         denuncia.save()
+
+        if denuncia.estado != estado_anterior:
+            NotificacaoService.estado_alterado(denuncia)
+
         return denuncia
 
     
@@ -162,6 +175,9 @@ class DenunciaService:
         denuncia.pt = pt
         denuncia.estado = Denuncia.Estado.EM_ATENDIMENTO
         denuncia.save()
+
+        NotificacaoService.agente_designado(denuncia)
+
         return denuncia
 
     @staticmethod  
