@@ -64,7 +64,15 @@ class DenunciaService:
         # conhecida, fica sem posto (None) e cai na fila global de PT.
         admin_responsavel = JurisdicaoService.encontrar_admin_por_localizacao(latitude, longitude)
 
+        # Acidente não tem análise de vídeo: com posto encontrado, fica logo
+        # "encaminhada" ao Admin (que recebe o SMS). Sem posto na zona fica
+        # PENDENTE - ninguém foi avisado, não seria verdade dizer o contrário.
+        estado = Denuncia.Estado.PENDENTE
+        if tipo_infracao == Denuncia.tipoInfracao.ACIDENTE and admin_responsavel:
+            estado = Denuncia.Estado.ENCAMINHADA
+
         denuncia = Denuncia.objects.create(
+            estado=estado,
             cidadao=cidadao,
             matricula=matricula,
             descricao=descricao,
@@ -134,9 +142,8 @@ class DenunciaService:
     def designar_pt_acidente(denuncia_id, pt_id, admin_id):
         """
         O Admin do posto responsável escolhe qual agente vai ao local do
-        acidente. Só troca o PT atribuído - não mexe no `estado`, essa
-        decisão (validar/rejeitar) continua a ser do próprio PT depois de
-        atender a ocorrência.
+        acidente. Passa o estado a EM_ATENDIMENTO, para o cidadão ver que
+        já vai um agente a caminho.
 
         Só aceita acidentes da jurisdição deste Admin e agentes do seu
         próprio posto (`pt_id` é o id do PT, não do utilizador).
@@ -153,6 +160,7 @@ class DenunciaService:
             raise ValueError("Agente não pertence a este posto")
 
         denuncia.pt = pt
+        denuncia.estado = Denuncia.Estado.EM_ATENDIMENTO
         denuncia.save()
         return denuncia
 
