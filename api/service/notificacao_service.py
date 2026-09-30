@@ -167,14 +167,14 @@ class NotificacaoService:
 
     @staticmethod
     def analise_falhou(denuncia):
-        """Cidadão: o vídeo não pôde ser analisado (todas as tentativas
-        falharam) - sem isto a denúncia ficava pendente sem explicação."""
+        """Cidadão: o vídeo não pôde ser analisado depois de todas as
+        tentativas, por isso a denúncia foi rejeitada."""
         NotificacaoService.notificar(
             [denuncia.cidadao.utilizador],
             Notificacao.Tipo.ANALISE_FALHOU,
-            f"Denúncia #{denuncia.id}: não foi possível analisar o vídeo",
-            "O vídeo não pôde ser analisado automaticamente (ficheiro danificado ou ilegível). "
-            "Se possível, crie uma nova denúncia com outro vídeo.",
+            f"Denúncia #{denuncia.id}: Rejeitada",
+            "A denúncia foi rejeitada porque o vídeo não pôde ser analisado automaticamente "
+            "(ficheiro danificado ou ilegível). Se possível, crie uma nova denúncia com outro vídeo.",
             denuncia,
         )
 
