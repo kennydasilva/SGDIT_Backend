@@ -11,7 +11,6 @@ from api.service.configuracao_service import ConfiguracaoService
 from api.service.jurisdicao_service import JurisdicaoService, ZonaSobrepostaError
 from api.service.nominatim_service import NominatimService
 from api.service.overpass_service import OverpassService
-from api.service.relatorio_service import RelatorioService
 from api.pagination import PaginacaoPadrao
 
 
@@ -265,9 +264,3 @@ class SuperAdminViewSet(ViewSet):
         JurisdicaoService.remover_via(admin_id, via_id)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @swagger_auto_schema(
-        operation_description="Resumo agregado para os Relatórios (totais, por estado, por tipo de infração, por mês)"
-    )
-    @action(detail=False, methods=["get"], url_path="relatorios/resumo")
-    def relatorios_resumo(self, request):
-        return Response(RelatorioService.obter_resumo())

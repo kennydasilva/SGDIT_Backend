@@ -88,6 +88,10 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
+# O frontend (outra origem) precisa de ler o nome do ficheiro nas
+# exportações de relatórios (Excel/PDF).
+CORS_EXPOSE_HEADERS = ['Content-Disposition']
+
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
