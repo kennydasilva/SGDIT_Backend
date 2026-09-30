@@ -154,8 +154,11 @@ class DenunciaViewSet(ViewSet):
 
             ficheiro = request.FILES.get("caminho_ficheiro")
 
+            # Obrigatória em todos os tipos excepto acidente (quem reporta
+            # pode não ver/saber a matrícula); quando enviada, tem sempre de
+            # ser válida.
             matricula = (request.data.get("matricula") or "").strip()
-            if not re.fullmatch(r"[A-Za-z]{2}-\d{2}-[A-Za-z]{2}", matricula):
+            if (matricula or not eh_acidente) and not re.fullmatch(r"[A-Za-z]{2}-\d{2}-[A-Za-z]{2}", matricula):
                 return Response({"error": "Matrícula inválida (formato AB-12-CD)"}, status=400)
 
             # Acidente de viação é reporte direto ao posto responsável, sem
