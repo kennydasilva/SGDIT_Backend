@@ -20,6 +20,7 @@ from api.Analise.velocidade import main_velocidade
 from api.service.evidencia_service import EvidenciaService
 import re
 import threading
+from django.core.cache import cache
 import traceback
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
@@ -146,6 +147,8 @@ class DenunciaViewSet(ViewSet):
         from rest_framework.parsers import MultiPartParser, FormParser
         from django.conf import settings
 
+        chave_pedido = None
+
         try:
 
             sentido_direccao = request.data.get("sentido_direccao")
@@ -185,6 +188,24 @@ class DenunciaViewSet(ViewSet):
                 except (TypeError, ValueError):
                     return None
 
+            # Protecção contra duplo clique/reenvio: o frontend gera um
+            # `pedido_id` único por formulário. `cache.add` é atómico no
+            # Redis - só o primeiro pedido com esse id passa; os repetidos
+            # recebem 409 (com o id da denúncia, se já foi criada).
+            pedido_id = request.data.get("pedido_id")
+            if pedido_id:
+                chave_pedido = f"denuncia_pedido:{request.user.id}:{pedido_id}"
+                if not cache.add(chave_pedido, "a_processar", timeout=600):
+                    existente = cache.get(chave_pedido)
+                    chave_pedido = None  # não apagar a chave do pedido original
+                    return Response(
+                        {
+                            "error": "Esta denúncia já foi enviada",
+                            "id": existente if isinstance(existente, int) else None,
+                        },
+                        status=status.HTTP_409_CONFLICT
+                    )
+
             denuncia = DenunciaService.criar_denuncia(
                 request.data.get("cidadao_id"),
                 matricula.upper(),
@@ -216,6 +237,9 @@ class DenunciaViewSet(ViewSet):
                     countdown=5
                 )
 
+            if chave_pedido:
+                cache.set(chave_pedido, denuncia.id, timeout=600)
+
             return Response(
                 {"message": "Denuncia criada com sucesso", "id": denuncia.id},
                 status=status.HTTP_201_CREATED
@@ -223,6 +247,10 @@ class DenunciaViewSet(ViewSet):
 
         except Exception as e:
 
+            # Falhou a criar: liberta o pedido para o cidadão poder tentar
+            # outra vez com o mesmo formulário.
+            if chave_pedido:
+                cache.delete(chave_pedido)
             traceback.print_exc()
             return Response({"error": str(e)}, status=500)
 
