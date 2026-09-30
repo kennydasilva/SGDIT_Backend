@@ -150,6 +150,16 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Notificação ao Admin e aos agentes do posto original: "⚠️ Possível denúncia falsa: o vídeo da #x é igual ao da #y, mas foi declarado noutro local…". Detalhe do PT mostra os dois locais declarados e a distância.
   - Testado com rollback (Mavalane vs Albazine, 9 km): ligada, marcada, passou para Mavalane; só Mavalane notificado; visível na fila de Mavalane e ausente da de Albazine; a cópia no mesmo local continua escondida e é aprovada com o grupo; aprovar a original deixa a falsa por decidir. `tsc` sem erros novos. **Não testado no browser.**
 
+- **Revisão visual de toda a aplicação** (pedido do utilizador: "muitas partes com inconsistência de texto, de cores e formulários com design feio"). Levantamento feito primeiro, página a página (cores hexadecimais soltas, `alert()`, inputs sem `INPUT`, títulos de tamanhos diferentes, texto em pt-BR misturado).
+  - **Base:** novas classes em `uiClasses.ts` (`PAGE`, `PAGE_TITLE`, `PAGE_SUBTITLE`, `SECTION_TITLE`, `FIELD_ERROR/HINT`, `ALERT_*`, `LINK`); `utils/mensagens.ts` (toasts com a mensagem de erro do backend). **Bug:** o `<Toaster />` nunca estava montado, por isso os `toast()` do agente (aprovar/arquivar) e do perfil nunca apareciam.
+  - **Barras laterais:** `AppShell` único para os 4 perfis (antes, 4 cópias com diferenças: o Admin mostrava "SA", o rodapé mostrava o papel em código). **Bug:** o menu do Admin tinha Cidadãos/Denúncias/Relatórios sem rota, que mandavam para o ecrã de login.
+  - **Autenticação:** `AuthLayout` comum a Entrar/Registar/Recuperar/Redefinir. **Bug:** o login nunca mostrava a mensagem de "conta criada" / "senha redefinida" que o registo e a redefinição lhe enviavam.
+  - **Admin/Policias** reescrita (erros no modal, toasts; título "Criar administrador" errado no modal de agente; opções falsas de localização; edição sem `await`).
+  - **Agente:** fila (`DenunciasPt`) — **bugs:** confiança "0.61%" em vez de "61%", botão "Analisar" que nunca aparecia (comparava `"Validada"`), filtro de estado que esvaziava a lista; trocado por filtro de tipo. "Minhas decisões" sem mock morto, conta aprovadas/rejeitadas. Detalhe com loading/erro (antes não havia) e estilos padrão. Nova mensagem ao cidadão quando o agente arquiva ("arquivou-a, sem seguimento") — a decisão negativa do agente grava ARQUIVADA, não REJEITADA.
+  - **Cidadão:** lista e detalhe com estados de carregamento/erro, mock morto removido; `alert()` restantes trocados por toasts (Criar denúncia, Admins, Cidadãos, Configurações, Jurisdições).
+  - **Texto:** ortografia do Acordo (maioritária) e vocabulário pt-MZ/pt-PT: Guardar, Eliminar, Pesquisar, Indique, Estado, ficheiro, registo, "Agentes" em vez de "Policiais".
+  - `tsc`: de 23 para 12 erros (todos anteriores). **Visto no browser:** Entrar e Registar. **As páginas internas não foram vistas no browser** (sem credenciais de teste nesta sessão). Ficou por fazer: o `confirm()` de apagar credenciais em Configurações (nativo).
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)

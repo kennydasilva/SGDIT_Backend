@@ -19,6 +19,7 @@ TIPO_LABEL = {
 MENSAGEM_ESTADO_CIDADAO = {
     ("REJEITADA", "IA"): "A análise automática não detectou a infração no vídeo, por isso a denúncia foi rejeitada.",
     ("REJEITADA", "PT"): "Um agente de trânsito reviu a denúncia e rejeitou-a.",
+    ("ARQUIVADA", "PT"): "Um agente de trânsito reviu a denúncia e arquivou-a, sem seguimento.",
     ("APROVADA", "PT"): "Um agente de trânsito reviu e aprovou a denúncia. Obrigado pela sua colaboração.",
     "VALIDADA": "A análise automática confirmou a infração. A denúncia está agora em revisão por um agente.",
     "REJEITADA": "A denúncia foi rejeitada.",
