@@ -167,6 +167,14 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - **Ainda impede o envio (do lado do utilizador):** saldo 0,65 MZN (cada SMS 1,35 MZN → 0 SMS possíveis); nenhum dos 5 Admins tem telemóvel registado; confirmar que o remetente "ESHOP" está aprovado na conta (a conta é a de "truck freight").
   - **Por fazer:** SMS de teste real para um número indicado pelo utilizador, depois de haver saldo (envio pago, só com confirmação).
 
+- **Relatórios completos, com filtros e exportação Excel/PDF** (decisões do utilizador: filtros de período, posto, tipo e estado; Super Admin + Admin do posto; novas secções por posto, desempenho dos agentes, acidentes e qualidade das denúncias; exportação com resumo + lista detalhada).
+  - Backend: `RelatorioService` reescrito com filtros (`admin_id` aceita também `sem_posto`); novo `RelatorioViewSet` em `relatorios/resumo`, `relatorios/exportar/excel` e `relatorios/exportar/pdf` (Super Admin + Admin). **O Admin vê sempre só o seu posto**, lido da sessão, mesmo que peça outro. O gráfico por mês segue o período filtrado (máx. 24 meses). A antiga acção `relatorios/resumo` do Super Admin foi removida.
+  - Novos campos `Denuncia.decidido_em` (decisão do agente) e `designado_em` (1.ª designação num acidente), migração `0018`, para medir com rigor o tempo até decidir e até designar (`atualizado_em` mudava com qualquer gravação). Denúncias antigas ficam sem estas datas e não entram nessas médias.
+  - Exportação gerada no servidor: `openpyxl` (folhas "Resumo" + "Denúncias", com filtro e cabeçalho fixo) e `reportlab` (A4 horizontal, tabelas, lista das 1000 mais recentes; o Excel tem todas). Acrescentados ao `requirements.txt` (openpyxl, et_xmlfile, reportlab, pillow). `CORS_EXPOSE_HEADERS = ['Content-Disposition']` para o frontend ler o nome do ficheiro.
+  - Frontend: página única `pages/Relatorios/Relatorios.tsx` para Super Admin (com filtro e tabela por posto) e Admin (item "Relatórios" novo no menu do Admin); filtros, 3 indicadores, gráficos por mês/estado/tipo, tabelas por posto e agentes, indicadores de acidentes e de qualidade; botões Exportar PDF/Excel activos.
+  - Testado contra a BD real: resumo e filtros (período+tipo, posto, sem posto); Admin de Mavalane a pedir o posto 1 → só vê Mavalane (também na exportação); cidadão → 403; Excel válido (2 folhas, 19 linhas); PDF válido (4 páginas, revisto em imagem: corrigidas a largura da lista, que saía da página, e um título que ficava sozinho no fim da página). Tempos de decisão/designação testados com rollback (5 h e 12 min simulados → 5,0 h e 12 min). Servidor em execução: download com o nome certo. `tsc` sem erros novos. **Não testado no browser** (sem credenciais).
+  - Nos outros ambientes: `pip install -r requirements.txt` e `migrate`.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)

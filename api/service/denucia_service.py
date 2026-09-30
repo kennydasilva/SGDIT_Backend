@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.db.models import Q
 
 from api.model.user import Utilizador, Cidadao, PT
@@ -141,6 +142,8 @@ class DenunciaService:
         denuncia.pt = DenunciaService.encontrar_utilizador_PT(pt_id)
         estado_anterior = denuncia.estado
         denuncia.estado = estado
+        if estado != estado_anterior:
+            denuncia.decidido_em = timezone.now()
 
         denuncia.save()
 
@@ -166,6 +169,7 @@ class DenunciaService:
             for outra in grupo:
                 outra.pt = denuncia.pt
                 outra.estado = Denuncia.Estado.APROVADA
+                outra.decidido_em = denuncia.decidido_em
                 outra.save()
                 NotificacaoService.estado_alterado(outra, origem="PT")
 
@@ -221,6 +225,9 @@ class DenunciaService:
 
         denuncia.pt = pt
         denuncia.estado = Denuncia.Estado.EM_ATENDIMENTO
+        # Primeira designação conta para o tempo de resposta; trocar de
+        # agente depois não o reinicia.
+        denuncia.designado_em = denuncia.designado_em or timezone.now()
         denuncia.save()
 
         NotificacaoService.agente_designado(denuncia)
@@ -230,6 +237,7 @@ class DenunciaService:
         for rel in denuncia.relacionadas.filter(estado__in=[Denuncia.Estado.ENCAMINHADA, Denuncia.Estado.PENDENTE]):
             rel.pt = pt
             rel.estado = Denuncia.Estado.EM_ATENDIMENTO
+            rel.designado_em = rel.designado_em or denuncia.designado_em
             rel.save()
             NotificacaoService.estado_alterado(rel)
 

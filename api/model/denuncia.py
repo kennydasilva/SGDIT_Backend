@@ -37,6 +37,11 @@ class Denuncia(models.Model):
     atualizado_em = models.DateTimeField(auto_now=True)
     matricula = models.CharField(max_length=255, null=True, blank=True)
 
+    # Momentos exactos das decisões, para os Relatórios medirem tempos de
+    # resposta (atualizado_em muda com qualquer gravação, não serve).
+    decidido_em = models.DateTimeField(null=True, blank=True)    # agente aprova/arquiva/rejeita
+    designado_em = models.DateTimeField(null=True, blank=True)   # Admin designa agente (acidente)
+
     estado = models.CharField(
         max_length=20,
         choices=Estado.choices,
