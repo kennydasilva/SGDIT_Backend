@@ -121,6 +121,18 @@ class AssinaturaVideoService:
         return None
 
     @staticmethod
+    def localizacao_contradiz(denuncia, outra):
+        """Os dois locais declarados para o mesmo vídeo não batem certo:
+        jurisdições diferentes ou mais de 300 m de distância."""
+        from api.service.duplicados_service import RAIO_METROS, distancia_metros
+
+        if denuncia.admin_responsavel_id != outra.admin_responsavel_id:
+            return True
+        if None in (denuncia.latitude, denuncia.longitude, outra.latitude, outra.longitude):
+            return False
+        return distancia_metros(denuncia.latitude, denuncia.longitude, outra.latitude, outra.longitude) > RAIO_METROS
+
+    @staticmethod
     def processar(denuncia):
         """
         Calcula e guarda a assinatura do vídeo da denúncia e, se for igual
@@ -149,7 +161,18 @@ class AssinaturaVideoService:
             # por ser a mesma infração.
             if not denuncia.denuncia_principal_id:
                 denuncia.denuncia_principal_id = outra.denuncia_principal_id or outra.id
-            denuncia.save(update_fields=["video_semelhante_a", "denuncia_principal"])
+
+            # Mesmo vídeo declarado noutro local: provável denúncia falsa.
+            # Decisão do utilizador: o posto da denúncia original fica com
+            # ela (o vídeo é dele), o outro posto não é envolvido.
+            if AssinaturaVideoService.localizacao_contradiz(denuncia, outra):
+                denuncia.localizacao_contraditoria = True
+                denuncia.admin_responsavel_id = outra.admin_responsavel_id
+
+            denuncia.save(update_fields=[
+                "video_semelhante_a", "denuncia_principal",
+                "localizacao_contraditoria", "admin_responsavel",
+            ])
 
             from api.service.notificacao_service import NotificacaoService
             NotificacaoService.denuncia_relacionada(denuncia, "VIDEO_SEMELHANTE")

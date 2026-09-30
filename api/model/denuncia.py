@@ -101,5 +101,11 @@ class Denuncia(models.Model):
         related_name="videos_semelhantes"
     )
 
+    # Vídeo igual ao de outra denúncia, mas declarado noutro local (> 300 m
+    # ou outra jurisdição): provável denúncia falsa. Fica com o posto da
+    # denúncia original, que a decide explicitamente (não fica escondida
+    # atrás da principal e a aprovação desta não se estende a ela).
+    localizacao_contraditoria = models.BooleanField(default=False)
+
     def __str__(self):
         return f"Denuncia {self.id}"

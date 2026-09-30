@@ -189,7 +189,11 @@ class NotificacaoService:
             return
 
         referencia = denuncia.video_semelhante_a if motivo == "VIDEO_SEMELHANTE" and denuncia.video_semelhante_a else principal
-        if motivo == "VIDEO_SEMELHANTE":
+        if motivo == "VIDEO_SEMELHANTE" and denuncia.localizacao_contraditoria:
+            mensagem = (f"⚠️ Possível denúncia falsa: o vídeo da denúncia #{denuncia.id} é igual ao da #{referencia.id}, "
+                        f"mas foi declarado noutro local ({denuncia.localizacao or 'sem local'}). "
+                        f"Fica com o posto da denúncia original, para decisão.")
+        elif motivo == "VIDEO_SEMELHANTE":
             mensagem = (f"O vídeo da denúncia #{denuncia.id} é semelhante ao da denúncia #{referencia.id} "
                         f"({referencia.get_estado_display().lower()}). Foram ligadas para decisão conjunta.")
         else:

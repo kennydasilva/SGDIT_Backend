@@ -416,6 +416,8 @@ class DenunciaViewSet(ViewSet):
                 "infracao_detectada": analise.infracao_detectada if analise else None,
                 "confianca": analise.confianca if analise else None,
                 "video_semelhante_a_id": d.video_semelhante_a_id,
+                "localizacao_contraditoria": d.localizacao_contraditoria,
+                "localizacao": d.localizacao,
             })
 
         return Response(data)
@@ -473,6 +475,13 @@ class DenunciaViewSet(ViewSet):
 
         return Response({"message": "Agente designado", "id": denuncia.id})
 
+    @staticmethod
+    def _distancia(a, b):
+        if not b or None in (a.latitude, a.longitude, b.latitude, b.longitude):
+            return None
+        from api.service.duplicados_service import distancia_metros
+        return round(distancia_metros(a.latitude, a.longitude, b.latitude, b.longitude))
+
     def preparar_denuncia(denuncia, resultadoAnalise, ficheiro_processado, ficheiro_original, data_captura_formatada, data_analise_formatada):
         data={
                 "id": denuncia.id,
@@ -490,6 +499,9 @@ class DenunciaViewSet(ViewSet):
                 "denuncia_principal_id": denuncia.denuncia_principal_id,
                 "video_semelhante_a_id": denuncia.video_semelhante_a_id,
                 "video_semelhante_a_estado": denuncia.video_semelhante_a.estado if denuncia.video_semelhante_a_id else None,
+                "localizacao_contraditoria": denuncia.localizacao_contraditoria,
+                "video_semelhante_a_localizacao": denuncia.video_semelhante_a.localizacao if denuncia.video_semelhante_a_id else None,
+                "distancia_video_semelhante_m": DenunciaViewSet._distancia(denuncia, denuncia.video_semelhante_a),
                 "total_relacionadas": denuncia.relacionadas.count(),
                 "ficheiro_processado": ficheiro_processado,
                 "ficheiro_original": ficheiro_original,

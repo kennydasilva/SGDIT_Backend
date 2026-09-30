@@ -33,8 +33,11 @@ class DenunciaService:
         """
         # Relacionada cuja principal já está na fila: o grupo aparece uma
         # só vez (na principal, com "+N testemunhas").
+        # Excepção: localização contraditória (provável falsa) aparece
+        # sempre, para o agente a decidir explicitamente.
         qs = Denuncia.objects.filter(estado="VALIDADA").exclude(
-            denuncia_principal__estado=Denuncia.Estado.VALIDADA
+            denuncia_principal__estado=Denuncia.Estado.VALIDADA,
+            localizacao_contraditoria=False,
         )
 
         if admin_id is not None:
@@ -154,9 +157,11 @@ class DenunciaService:
         # este vídeo que não serve, as outras continuam na fila.
         if estado == Denuncia.Estado.APROVADA:
             raiz = denuncia.denuncia_principal or denuncia
+            # Nunca aprova automaticamente uma de localização contraditória.
             grupo = Denuncia.objects.filter(
                 Q(id=raiz.id) | Q(denuncia_principal_id=raiz.id),
                 estado__in=[Denuncia.Estado.PENDENTE, Denuncia.Estado.VALIDADA],
+                localizacao_contraditoria=False,
             ).exclude(id=denuncia.id)
             for outra in grupo:
                 outra.pt = denuncia.pt
