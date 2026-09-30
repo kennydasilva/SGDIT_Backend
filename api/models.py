@@ -4,6 +4,7 @@ from .model.analise import ResultadoAnalise
 from .model.evidencia import Evidencia
 from .model.configuracao import ConfiguracaoAPI
 from .model.jurisdicao import ViaJurisdicao
+from .model.notificacao import Notificacao
 
 # Export all models for convenience
-__all__ = ['Utilizador', 'Cidadao', 'PT', 'Denuncia', 'ResultadoAnalise', 'Evidencia', 'ConfiguracaoAPI', 'ViaJurisdicao']
+__all__ = ['Utilizador', 'Cidadao', 'PT', 'Denuncia', 'ResultadoAnalise', 'Evidencia', 'ConfiguracaoAPI', 'ViaJurisdicao', 'Notificacao']

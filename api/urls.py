@@ -8,6 +8,7 @@ from api.controller.denucia_controller import DenunciaViewSet
 from api.controller.pt_controller import PtViewSet, PtUserViewSet
 from api.controller.superadmin_controller import SuperAdminViewSet
 from api.controller.configuracao_controller import ConfiguracaoPublicaController
+from api.controller.notificacao_controller import NotificacaoViewSet
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -16,6 +17,7 @@ router.register(r"pts", PtViewSet, basename="pts")
 router.register(r"pts/user", PtUserViewSet, basename="pts-user")
 router.register(r"denuncias", DenunciaViewSet, basename="denuncias")
 router.register(r"cidadao/user", CidadaoUserViewSet, basename="cidadao-users")
+router.register(r"notificacoes", NotificacaoViewSet, basename="notificacoes")
 router.register(r"", SuperAdminViewSet, basename="superadmin")
 
 urlpatterns = [

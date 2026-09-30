@@ -107,6 +107,18 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
     - Testado: 2 envios seguidos → 201 + 409; 5 envios em simultâneo (threads) → 1×201 + 4×409; falha → 500 e nova tentativa → 201. As denúncias de teste foram apagadas e o contador do cidadão reposto. `tsc` sem erros novos. **Não testado no browser.**
   - **Para pôr a funcionar:** criar conta em my.mozesms.com → Gestão de APIs → guardar API Key/Secret em Configurações; registar o telemóvel dos Admins existentes (hoje nenhum tem); reiniciar o worker Celery para carregar a task nova.
 
+- **Notificações dentro da aplicação, para todos os utilizadores** (pedido do utilizador: "sempre que há uma actualização entra uma notificação").
+  - Backend: modelo `Notificacao` (utilizador, tipo, título, mensagem, denúncia, lida, data; migração `0013_notificacao`) e `NotificacaoService`, com os eventos ligados onde o estado muda:
+    - **Denúncia criada** → cidadão ("Denúncia #x recebida"). Se for acidente → Admin do posto da zona; sem posto → Super Admins (para não ficar ninguém a saber).
+    - **Análise automática** (VALIDADA/REJEITADA) → cidadão; se VALIDADA → agentes do posto da zona (sem posto → todos os agentes, a mesma regra da fila `pt/validadas`).
+    - **Decisão do PT** (aprovar/rejeitar) → cidadão.
+    - **Admin designa agente para acidente** → o agente designado + cidadão ("Agente designado").
+    - Best-effort: uma falha a criar a notificação nunca impede a acção principal.
+  - **Decisão a confirmar com o utilizador:** o agente é notificado quando a denúncia entra na fila dele (depois de a IA a validar), não no momento da criação. Antes disso o agente ainda não a vê na lista e as rejeitadas pela IA nunca lhe chegam.
+  - API: `GET /notificacoes/` (paginado, `?nao_lidas=1`), `GET /notificacoes/contagem/`, `PATCH /notificacoes/<id>/lida/`, `PATCH /notificacoes/marcar-todas-lidas/`. Cada utilizador só vê e marca as suas (lidas do token, nunca de um id no pedido).
+  - Frontend: página `Notificacoes.tsx` partilhada pelos 4 perfis (`/cidadao|pt|admin|super-admin/notificacoes`), item "Notificações" na barra lateral com contador de não lidas (actualiza a cada 30s e logo ao marcar como lida), filtro Todas/Por ler, "Marcar todas como lidas". Clicar marca como lida e abre a denúncia no ecrã certo para o perfil (o PT não tem ecrã de acidente, por isso a designação não tem link; o local vai na mensagem).
+  - Testado contra a BD com rollback: cada evento gerou as notificações certas para as pessoas certas; contagem, marcar lida, filtro e marcar todas funcionam; outro utilizador a marcar a minha → 404. `tsc` sem erros novos. **Não testado no browser.** O worker Celery tem de ser reiniciado (a notificação da análise automática corre lá).
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
