@@ -13,8 +13,13 @@ TIPO_LABEL = {
     "ACIDENTE": "acidente de viação",
 }
 
-# O que o cidadão lê quando a sua denúncia muda de estado.
+# O que o cidadão lê quando a sua denúncia muda de estado. Chave
+# (estado, origem) tem prioridade sobre só o estado - a mesma rejeição
+# lê-se de forma diferente se veio da IA ou de um agente.
 MENSAGEM_ESTADO_CIDADAO = {
+    ("REJEITADA", "IA"): "A análise automática não detectou a infração no vídeo, por isso a denúncia foi rejeitada.",
+    ("REJEITADA", "PT"): "Um agente de trânsito reviu a denúncia e rejeitou-a.",
+    ("APROVADA", "PT"): "Um agente de trânsito reviu e aprovou a denúncia. Obrigado pela sua colaboração.",
     "VALIDADA": "A análise automática confirmou a infração. A denúncia está agora em revisão por um agente.",
     "REJEITADA": "A denúncia foi rejeitada.",
     "APROVADA": "A denúncia foi aprovada por um agente de trânsito.",
@@ -97,11 +102,19 @@ class NotificacaoService:
         )
 
     @staticmethod
-    def estado_alterado(denuncia):
-        """Cidadão: sempre que a sua denúncia muda de estado."""
-        mensagem = MENSAGEM_ESTADO_CIDADAO.get(denuncia.estado)
+    def estado_alterado(denuncia, origem=None, detalhe=None):
+        """Cidadão: sempre que a sua denúncia muda de estado. `origem`
+        ("IA"/"PT") afina a mensagem; `detalhe` acrescenta o motivo/código
+        legal escrito pelo agente."""
+        mensagem = (
+            MENSAGEM_ESTADO_CIDADAO.get((denuncia.estado, origem))
+            or MENSAGEM_ESTADO_CIDADAO.get(denuncia.estado)
+        )
         if not mensagem:
             return
+
+        if detalhe:
+            mensagem = f"{mensagem} {detalhe}"
 
         NotificacaoService.notificar(
             [denuncia.cidadao.utilizador],
@@ -125,6 +138,19 @@ class NotificacaoService:
             Notificacao.Tipo.NOVA_PARA_REVISAO,
             f"Nova denúncia #{denuncia.id} para revisão",
             f"Denúncia de {NotificacaoService._tipo(denuncia)} em {denuncia.localizacao or 'local não especificado'} aguarda a sua decisão.",
+            denuncia,
+        )
+
+    @staticmethod
+    def analise_falhou(denuncia):
+        """Cidadão: o vídeo não pôde ser analisado (todas as tentativas
+        falharam) - sem isto a denúncia ficava pendente sem explicação."""
+        NotificacaoService.notificar(
+            [denuncia.cidadao.utilizador],
+            Notificacao.Tipo.ANALISE_FALHOU,
+            f"Denúncia #{denuncia.id}: não foi possível analisar o vídeo",
+            "O vídeo não pôde ser analisado automaticamente (ficheiro danificado ou ilegível). "
+            "Se possível, crie uma nova denúncia com outro vídeo.",
             denuncia,
         )
 

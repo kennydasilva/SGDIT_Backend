@@ -123,7 +123,12 @@ class DenunciaService:
         denuncia.save()
 
         if denuncia.estado != estado_anterior:
-            NotificacaoService.estado_alterado(denuncia)
+            partes = []
+            if descricao_pt:
+                partes.append(f"Nota do agente: {descricao_pt.strip().rstrip('.')}.")
+            if codigo_legal and estado == Denuncia.Estado.APROVADA:
+                partes.append(f"Código legal aplicado: {codigo_legal.strip().rstrip('.')}.")
+            NotificacaoService.estado_alterado(denuncia, origem="PT", detalhe=" ".join(partes) or None)
 
         return denuncia
 
