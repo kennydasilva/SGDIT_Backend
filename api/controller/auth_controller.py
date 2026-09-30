@@ -120,38 +120,3 @@ class PasswordResetConfirmController(APIView):
             )
 
         return Response({"message": "Senha redefinida com sucesso"})
-
-
-class FcmTokenController(APIView):
-    """
-    Regista o token de push (Firebase Cloud Messaging) do dispositivo/browser
-    onde o utilizador autenticado tem sessão aberta. Usado sobretudo por
-    Admins, para receberem a notificação de acidente de viação na
-    jurisdição do seu posto assim que abrem a dashboard e autorizam
-    notificações - sem isto, a denúncia continua a ser criada, só não há
-    push a avisar em tempo real.
-    """
-
-    @swagger_auto_schema(
-        operation_description="Registar/actualizar o token FCM do utilizador autenticado",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                "fcm_token": openapi.Schema(type=openapi.TYPE_STRING),
-            },
-        )
-    )
-    def patch(self, request):
-
-        fcm_token = request.data.get("fcm_token")
-
-        if not fcm_token:
-            return Response(
-                {"error": "fcm_token é obrigatório"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        request.user.fcm_token = fcm_token
-        request.user.save(update_fields=["fcm_token"])
-
-        return Response({"message": "Token registado"})

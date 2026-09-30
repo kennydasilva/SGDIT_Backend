@@ -67,6 +67,7 @@ class CriarAdminSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
     posto = serializers.CharField()
+    numero = serializers.CharField(required=False, help_text="Telemóvel (+258 8XX XXX XXX) - recebe SMS de acidentes na jurisdição do posto")
 
 class AdminResponseSerializer(serializers.Serializer):
 
@@ -74,6 +75,7 @@ class AdminResponseSerializer(serializers.Serializer):
     nome = serializers.CharField()
     email = serializers.EmailField()
     posto = serializers.CharField()
+    numero = serializers.CharField(allow_null=True)
 
 
 

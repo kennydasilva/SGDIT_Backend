@@ -30,7 +30,8 @@ class AdminController(APIView):
                 "id":a.id,
                 "nome":a.utilizador.nome,
                 "email":a.utilizador.email,
-                "posto":a.posto
+                "posto":a.posto,
+                "numero":a.utilizador.numero
             }
             for a in pagina
         ]
@@ -48,12 +49,14 @@ class AdminController(APIView):
         email=request.data.get("email")
         password=request.data.get("password")
         posto=request.data.get("posto")
+        numero=request.data.get("numero")
 
         admin=AdminService.criar_admin(
             nome,
             email,
             password,
-            posto
+            posto,
+            numero
         )
 
         return Response({
@@ -69,6 +72,7 @@ class AdminController(APIView):
                 "admin_id": openapi.Schema(type=openapi.TYPE_INTEGER),
                 "nome": openapi.Schema(type=openapi.TYPE_STRING),
                 "posto": openapi.Schema(type=openapi.TYPE_STRING),
+                "numero": openapi.Schema(type=openapi.TYPE_STRING),
             }
         ),
         responses={200: "Admin actualizado"}
@@ -81,7 +85,8 @@ class AdminController(APIView):
         admin=AdminService.actualizar_admin(
             admin_id,
             nome,
-            posto
+            posto,
+            request.data.get("numero")
         )
 
         return Response(

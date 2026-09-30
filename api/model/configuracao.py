@@ -4,14 +4,14 @@ from api.helper.crypto import encriptar, desencriptar
 
 class ConfiguracaoAPI(models.Model):
     """
-    Credenciais de integrações externas (Google Maps, Firebase, etc.),
+    Credenciais de integrações externas (Google Maps, MozeSMS, etc.),
     geridas pelo Super Admin via UI em vez de variáveis de ambiente.
     O valor é sempre guardado encriptado.
 
     `publica` distingue chaves seguras para expor ao frontend (ex: chave
     JS do Google Maps, protegida por restrição de domínio na Google Cloud
-    Console) de segredos que NUNCA devem sair do backend (ex: credenciais
-    de servidor do Firebase Admin SDK).
+    Console) de segredos que NUNCA devem sair do backend (ex: API Key/Secret
+    da MozeSMS).
     """
 
     chave = models.CharField(max_length=100, unique=True)
