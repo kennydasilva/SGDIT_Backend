@@ -177,6 +177,13 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 
 - **Âmbito do acidente definido pelo utilizador: o trabalho do sistema termina quando o Admin do posto designa um agente.** O agente não "resolve" o acidente: faz a perícia no local e o processo segue para o tribunal — isso está **fora do âmbito** do SGDIT. O "ecrã de acidente do agente" (passos a caminho/no local, relatório de perícia, fotos, encaminhamento ao tribunal) chegou a ser começado e foi desfeito antes de publicar (migração revertida, nada ficou na BD nem no repositório). O estado final de um acidente no sistema é "Agente designado" (`EM_ATENDIMENTO`); o agente continua a receber a notificação de designação com o local.
 
+- **Jurisdições: mapa de cobertura, todos os postos juntos e área em km²** (escolhas do utilizador).
+  - Encontrado nos dados reais: **16 das 19 denúncias caíram fora de qualquer jurisdição** (encaminhadas à fila global; num acidente, nenhum Admin recebeu o SMS). As 4 que têm local no mapa ficam na zona de Mavalane/Hulene, onde Mavalane só tem 2 vias. Comando Geral não tem jurisdição nenhuma.
+  - Backend: `area_km2()` em `helper/geo.py` (projecção local; controlo: quadrado de 1×1 km → 1,0 km²); a lista de vias de um posto passa a trazer `area_km2` nas zonas; novos `GET jurisdicoes/visao-geral` (todos os postos, zonas/vias, área total por posto) e `GET jurisdicoes/cobertura` (denúncias sem posto com coordenadas + totais), só para o Super Admin (Admin → 403).
+  - Frontend: separadores "Gerir posto" / "Mapa de cobertura" em Jurisdições. O mapa de cobertura (`MapaCobertura.tsx`) mostra as jurisdições de todos os postos, cada posto com a sua cor (esconder/mostrar por posto), e as denúncias fora de jurisdição a vermelho, com aviso do total, lista lateral e "centrar no mapa". Na gestão de um posto: área de cada zona e total em km². Corrigido o erro de TypeScript antigo em `Jurisdicoes.tsx` (`onLoad` do mapa). Helper `geoJsonParaAneis` passou para `utils/maps.ts` (partilhado).
+  - Testado: endpoints contra a BD real (Mafalala 0,84 + 0,50 km²; 16 sem posto, 12 sem coordenadas, 4 pontos); `tsc` 13 → 12 erros (todos anteriores); Vite compila. **Não visto no browser** (sem credenciais).
+  - **A considerar:** quando se cria uma zona nova, as denúncias antigas que caem nela continuam sem posto (só as novas são encaminhadas) — pode fazer-se um "reencaminhar" dessas denúncias, a decidir com o utilizador.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
