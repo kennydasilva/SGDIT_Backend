@@ -144,6 +144,12 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Frontend: detalhe do PT com o aviso "vídeo visualmente igual ao da denúncia #x (estado)" e a ligação à principal; marca "vídeo semelhante" nas testemunhas; ícone próprio nas notificações.
   - Testado com rollback e vídeos sintéticos: original → sem ligação; cortado + recomprimido **com outra matrícula** → ligado ao original; vídeo diferente → não ligado; Admin e PT notificados; tentativa repetida não duplica frames. Mesma infração → Admin + PT + cidadão notificados. `tsc` sem erros novos. **Não testado no browser.** Nos outros ambientes: `migrate`, `python manage.py calcular_assinaturas_video` e reiniciar o Celery.
 
+- **Mesmo vídeo declarado noutra localização/jurisdição → provável denúncia falsa** (levantado pelo utilizador). A comparação visual já ligava estes casos (é global, não olha para o local), mas a segunda denúncia ficava escondida e era aprovada junto com a original sem ninguém notar a contradição. **Decisão do utilizador:** o posto da denúncia original fica com o vídeo; a outra parece falsa.
+  - Novo `Denuncia.localizacao_contraditoria` (migração `0017`): marcado quando o vídeo é igual e os locais estão a mais de 300 m ou em jurisdições diferentes. A denúncia passa para o posto da original (o outro posto não é envolvido).
+  - Fica **visível** na fila do posto original (não escondida atrás da principal), com "⚠️ possível falsa", e a aprovação da original **não se estende a ela**: o agente decide-a à parte. O cidadão não é informado da suspeita.
+  - Notificação ao Admin e aos agentes do posto original: "⚠️ Possível denúncia falsa: o vídeo da #x é igual ao da #y, mas foi declarado noutro local…". Detalhe do PT mostra os dois locais declarados e a distância.
+  - Testado com rollback (Mavalane vs Albazine, 9 km): ligada, marcada, passou para Mavalane; só Mavalane notificado; visível na fila de Mavalane e ausente da de Albazine; a cópia no mesmo local continua escondida e é aprovada com o grupo; aprovar a original deixa a falsa por decidir. `tsc` sem erros novos. **Não testado no browser.**
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)

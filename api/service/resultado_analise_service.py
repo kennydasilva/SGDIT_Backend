@@ -48,6 +48,7 @@ class ResultadoAnaliseService:
         principal_na_fila = (
             denuncia.denuncia_principal_id
             and denuncia.denuncia_principal.estado == Denuncia.Estado.VALIDADA
+            and not denuncia.localizacao_contraditoria
         )
         if denuncia.estado == Denuncia.Estado.VALIDADA and not principal_na_fila:
             NotificacaoService.nova_para_revisao(denuncia)
