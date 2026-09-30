@@ -30,7 +30,7 @@ from api.tasks.notificacao_task import notificar_admin_acidente
 from api.service.duplicados_service import DuplicadosService
 from api.helper.dataConvertion import formatar_data
 from api.pagination import PaginacaoPadrao
-from api.permissions.role_permissions import IsAdmin, IsAdminOrSuperAdmin
+from api.permissions.role_permissions import IsAdmin, IsAdminOrSuperAdmin, IsPTOrAdminOrSuperAdmin
 
 class DenunciaViewSet(ViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -382,6 +382,42 @@ class DenunciaViewSet(ViewSet):
     @action(detail=False, methods=["get"], url_path="pt/denuncias/(?P<pt_id>[^/.]+)")
     def por_pt(self, request, pt_id=None):
         return self._listar_paginado(request, DenunciaService.listar_por_pt(pt_id))
+
+    @swagger_auto_schema(
+        operation_description="Denúncias de testemunhas ligadas a esta (mesma infração reportada por "
+                               "outros cidadãos), com os respectivos vídeos - para o agente decidir o grupo"
+    )
+    @action(
+        detail=True, methods=["get"],
+        url_path="relacionadas",
+        permission_classes=[IsPTOrAdminOrSuperAdmin]
+    )
+    def relacionadas(self, request, pk=None):
+        # Nunca para cidadãos: são vídeos de outras pessoas. Também não
+        # devolve quem denunciou, só a evidência.
+        denuncia = DenunciaService.obter_denuncia_por_id(pk)
+        if not denuncia:
+            return Response({"error": "Denúncia não encontrada"}, status=404)
+
+        data = []
+        for d in denuncia.relacionadas.order_by("data_registo"):
+            analise = ResultadoAnaliseService.obter_por_denuncia(d.id)
+            evidencia = EvidenciaService.obter_evidencia(d.id)
+            data.append({
+                "id": d.id,
+                "estado": d.estado,
+                "descricao": d.descricao,
+                "data_registo": formatar_data(d.data_registo),
+                "ficheiro_original": evidencia.caminho_ficheiro.url if evidencia and evidencia.caminho_ficheiro else None,
+                "ficheiro_processado": (
+                    analise.caminho_ficheiro_processado.url
+                    if analise and analise.caminho_ficheiro_processado else None
+                ),
+                "infracao_detectada": analise.infracao_detectada if analise else None,
+                "confianca": analise.confianca if analise else None,
+            })
+
+        return Response(data)
 
     @swagger_auto_schema(
         operation_description="Listar acidentes de viação na jurisdição do posto do Admin autenticado "

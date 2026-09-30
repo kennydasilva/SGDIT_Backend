@@ -8,6 +8,8 @@ def processar_analise_async(self, tipo, path, denuncia_id, sentido_direccao):
     from api.Analise.parado import main_parado
     from api.Analise.velocidade import main_velocidade
 
+    from api.model.analise import ResultadoAnalise
+
     denuncia = Denuncia.objects.get(id=denuncia_id)
 
     try:
@@ -20,12 +22,24 @@ def processar_analise_async(self, tipo, path, denuncia_id, sentido_direccao):
         elif tipo == "VELOCIDADE":
             main_velocidade(path, denuncia)
 
+        # Os módulos de análise fazem só `return` quando não conseguem abrir
+        # o vídeo (sem lançar erro) - sem esta verificação o Celery nunca
+        # tentava de novo e a denúncia ficava pendente para sempre.
+        if not ResultadoAnalise.objects.filter(denuncia_id=denuncia_id).exists():
+            raise RuntimeError(f"Análise da denúncia {denuncia_id} terminou sem resultado")
+
     except Exception:
-        # Última tentativa falhou: avisa o cidadão, senão a denúncia fica
-        # pendente para sempre sem ele saber porquê.
+        # Esgotadas as tentativas: o sistema filtra denúncias - o que o
+        # modelo não consegue analisar é rejeitado (decisão do
+        # utilizador), e o cidadão é avisado do motivo.
         if self.request.retries >= self.max_retries:
             from api.service.notificacao_service import NotificacaoService
-            NotificacaoService.analise_falhou(denuncia)
+
+            denuncia.refresh_from_db()
+            if denuncia.estado == Denuncia.Estado.PENDENTE:
+                denuncia.estado = Denuncia.Estado.REJEITADA
+                denuncia.save(update_fields=["estado", "atualizado_em"])
+                NotificacaoService.analise_falhou(denuncia)
         raise
 
 

@@ -41,3 +41,12 @@ class IsPT(BasePermission):
             request.user.is_authenticated
             and request.user.role=="PT"
         )
+
+
+class IsPTOrAdminOrSuperAdmin(BasePermission):
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role in ("PT", "ADMIN", "SUPER_ADMIN")
+        )
