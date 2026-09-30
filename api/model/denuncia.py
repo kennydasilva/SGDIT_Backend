@@ -91,5 +91,15 @@ class Denuncia(models.Model):
         related_name="relacionadas"
     )
 
+    # O vídeo desta denúncia é visualmente igual (cortado/recomprimido) ao
+    # de outra: não é recusada, fica ligada e o agente vê de qual.
+    video_semelhante_a = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="videos_semelhantes"
+    )
+
     def __str__(self):
         return f"Denuncia {self.id}"

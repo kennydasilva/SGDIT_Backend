@@ -137,6 +137,13 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Detalhe do cidadão: uma denúncia rejeitada sem vídeo processado mostra "Não foi possível analisar o vídeo" em vez de "Processando vídeo...".
   - Testado com rollback: vídeo que não abre → 3 tentativas PENDENTE, a 4ª REJEITADA com notificação; excepção → igual; sucesso na 2ª tentativa → VALIDADA; endpoint PT/Admin 200, cidadão 403. `tsc` sem erros novos. **Não testado no browser.** Reiniciar o worker Celery.
 
+- **Vídeos editados (cortados/recomprimidos) ligados como relacionados + notificação ao Admin e agentes** (decisões do utilizador: o ficheiro exactamente igual continua recusado; o vídeo visualmente igual **não é recusado, fica relacionado**; o Admin do posto e os agentes são notificados de qualquer denúncia relacionada).
+  - Latência medida antes de avançar: assinatura visual de 3 min de vídeo 1080p ~5,5 s (~1 s já reduzido); comparação contra 10 000 vídeos ~5 ms (índice por bandas). Um corte de 1 min a meio de um vídeo de 3 min, recomprimido noutra resolução → 60/60 frames reconhecidos. Corre no worker, antes da IA: o cidadão não espera.
+  - Backend: `AssinaturaFrame` (hash perceptual dHash de 64 bits, 1 frame/s, 4 bandas indexadas) e `AssinaturaVideoService`: calcula a assinatura no worker e, se ≥ metade dos frames (mínimo 3) coincidirem com o vídeo de outra denúncia, liga-a (`Denuncia.video_semelhante_a` + `denuncia_principal`). Best-effort: nunca impede a análise; não recalcula nas tentativas repetidas. Migração `0016_assinatura_video`; comando `calcular_assinaturas_video` calcula os vídeos já existentes (19 feitos em ~11 s, **sem ligar nem alterar denúncias existentes**).
+  - Notificação `DENUNCIA_RELACIONADA` ao Admin do posto e aos agentes do posto (sem posto → todos os agentes + Super Admins), nos dois casos: mesma infração (outro cidadão) e vídeo semelhante. Num acidente juntado a outro, além do Admin, o agente já designado também é avisado.
+  - Frontend: detalhe do PT com o aviso "vídeo visualmente igual ao da denúncia #x (estado)" e a ligação à principal; marca "vídeo semelhante" nas testemunhas; ícone próprio nas notificações.
+  - Testado com rollback e vídeos sintéticos: original → sem ligação; cortado + recomprimido **com outra matrícula** → ligado ao original; vídeo diferente → não ligado; Admin e PT notificados; tentativa repetida não duplica frames. Mesma infração → Admin + PT + cidadão notificados. `tsc` sem erros novos. **Não testado no browser.** Nos outros ambientes: `migrate`, `python manage.py calcular_assinaturas_video` e reiniciar o Celery.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)

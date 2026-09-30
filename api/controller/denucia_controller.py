@@ -415,6 +415,7 @@ class DenunciaViewSet(ViewSet):
                 ),
                 "infracao_detectada": analise.infracao_detectada if analise else None,
                 "confianca": analise.confianca if analise else None,
+                "video_semelhante_a_id": d.video_semelhante_a_id,
             })
 
         return Response(data)
@@ -487,6 +488,8 @@ class DenunciaViewSet(ViewSet):
                 "admin_responsavel_id": denuncia.admin_responsavel_id,
                 "data_registo": formatar_data(denuncia.data_registo),
                 "denuncia_principal_id": denuncia.denuncia_principal_id,
+                "video_semelhante_a_id": denuncia.video_semelhante_a_id,
+                "video_semelhante_a_estado": denuncia.video_semelhante_a.estado if denuncia.video_semelhante_a_id else None,
                 "total_relacionadas": denuncia.relacionadas.count(),
                 "ficheiro_processado": ficheiro_processado,
                 "ficheiro_original": ficheiro_original,
