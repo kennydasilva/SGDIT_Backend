@@ -90,6 +90,8 @@ class NotificacaoService:
         )
 
         if not eh_acidente:
+            if principal_id:
+                NotificacaoService.denuncia_relacionada(denuncia, "MESMA_INFRACAO")
             return
 
         local = denuncia.localizacao or "local não especificado"
@@ -101,6 +103,9 @@ class NotificacaoService:
                 [denuncia.admin_responsavel.utilizador] if denuncia.admin_responsavel_id
                 else Utilizador.objects.filter(role=Utilizador.Role.SUPER_ADMIN, is_active=True)
             )
+            # E o agente já designado para esse acidente, se houver.
+            if denuncia.pt_id:
+                destinatarios = list(destinatarios) + [denuncia.pt.utilizador]
             NotificacaoService.notificar(
                 destinatarios,
                 Notificacao.Tipo.ACIDENTE_REPORTADO,
@@ -162,6 +167,48 @@ class NotificacaoService:
             Notificacao.Tipo.NOVA_PARA_REVISAO,
             f"Nova denúncia #{denuncia.id} para revisão",
             f"Denúncia de {NotificacaoService._tipo(denuncia)} em {denuncia.localizacao or 'local não especificado'} aguarda a sua decisão.",
+            denuncia,
+        )
+
+    @staticmethod
+    def _agentes_do_posto(admin_id):
+        """Mesma regra da fila `pt/validadas`: agentes do posto; sem posto,
+        todos os agentes."""
+        pts = PT.objects.select_related("utilizador").filter(utilizador__is_active=True)
+        if admin_id:
+            pts = pts.filter(admin_id=admin_id)
+        return [p.utilizador for p in pts]
+
+    @staticmethod
+    def denuncia_relacionada(denuncia, motivo):
+        """Admin do posto e agentes: uma denúncia nova ficou ligada a outra
+        (`motivo` "MESMA_INFRACAO" - outro cidadão, mesma matrícula/local;
+        ou "VIDEO_SEMELHANTE" - vídeo visualmente igual ao de outra)."""
+        principal = denuncia.denuncia_principal
+        if not principal:
+            return
+
+        referencia = denuncia.video_semelhante_a if motivo == "VIDEO_SEMELHANTE" and denuncia.video_semelhante_a else principal
+        if motivo == "VIDEO_SEMELHANTE":
+            mensagem = (f"O vídeo da denúncia #{denuncia.id} é semelhante ao da denúncia #{referencia.id} "
+                        f"({referencia.get_estado_display().lower()}). Foram ligadas para decisão conjunta.")
+        else:
+            mensagem = (f"Outro cidadão denunciou a mesma infração ({NotificacaoService._tipo(denuncia)}, "
+                        f"matrícula {denuncia.matricula}). A denúncia #{denuncia.id} foi ligada à #{principal.id} como testemunha.")
+
+        admin_id = principal.admin_responsavel_id or denuncia.admin_responsavel_id
+        destinatarios = NotificacaoService._agentes_do_posto(admin_id)
+        if admin_id:
+            from api.model.user import Admin
+            destinatarios.append(Admin.objects.select_related("utilizador").get(id=admin_id).utilizador)
+        else:
+            destinatarios += list(Utilizador.objects.filter(role=Utilizador.Role.SUPER_ADMIN, is_active=True))
+
+        NotificacaoService.notificar(
+            destinatarios,
+            Notificacao.Tipo.DENUNCIA_RELACIONADA,
+            f"Denúncia relacionada: #{denuncia.id} → #{principal.id}",
+            mensagem,
             denuncia,
         )
 

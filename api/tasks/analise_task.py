@@ -10,7 +10,14 @@ def processar_analise_async(self, tipo, path, denuncia_id, sentido_direccao):
 
     from api.model.analise import ResultadoAnalise
 
+    from api.service.assinatura_video_service import AssinaturaVideoService
+
     denuncia = Denuncia.objects.get(id=denuncia_id)
+
+    # Antes da IA: liga a outra denúncia se o vídeo for visualmente igual
+    # (cortado/recomprimido). Nunca impede a análise.
+    AssinaturaVideoService.processar(denuncia)
+    denuncia.refresh_from_db()
 
     try:
         if tipo == "CONTRAMAO":
