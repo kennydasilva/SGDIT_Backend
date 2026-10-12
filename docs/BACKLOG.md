@@ -268,6 +268,8 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 - **Paginação de 10 em 10** (o utilizador: "a paginação ainda não está a funcionar, estou a ver toda a lista"): não era erro — o limite era 20 por página e nenhuma lista tinha mais de 20 registos, por isso os botões nem apareciam. As 10 páginas de listagem pedem agora 10 por página. Confirmado no browser em Minhas Denúncias (19 registos: página 1 com 10, "Seguinte" → página 2 com 9).
 - **Ordenação: do mais recente para o mais antigo em todas as listas** (pedido do utilizador). Administradores e agentes estavam do mais antigo para o mais recente; cidadãos ordenavam por uma data vazia nas contas antigas. As denúncias já estavam por data decrescente e ganharam desempate pelo número, para a ordem não variar entre páginas. Confirmado pela API em 6 listagens.
 
+- **"Denúncias Recentes" nos dashboards: só 3** (pedido do utilizador; mostrava até 20). Vale para o dashboard do cidadão e para as "Últimas denúncias validadas" do agente; o resto vê-se em "Ver todas". O total do cidadão passa a vir da contagem do servidor (antes era o número de linhas carregadas, que parava em 20). **Notado, não corrigido:** no mesmo ecrã o ranking mostra "11 denúncias" para o cidadão que tem 20 — o contador do ranking só começou a contar a 2026-09-04.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
