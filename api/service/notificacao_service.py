@@ -198,7 +198,7 @@ class NotificacaoService:
         referencia = denuncia.video_semelhante_a if motivo == "VIDEO_SEMELHANTE" and denuncia.video_semelhante_a else principal
         estado_ref = referencia.get_estado_display().lower()
         if motivo == "VIDEO_SEMELHANTE" and denuncia.localizacao_contraditoria:
-            mensagem = (f"⚠️ Possível denúncia falsa: o vídeo da denúncia #{denuncia.id} é igual ao da #{referencia.id}, "
+            mensagem = (f"Possível denúncia falsa: o vídeo da denúncia #{denuncia.id} é igual ao da #{referencia.id}, "
                         f"mas foi declarado noutra jurisdição ({denuncia.localizacao or 'sem local'}). "
                         f"Ficou em estado duvidoso, no posto da denúncia original, a aguardar a decisão de um agente.")
         elif motivo == "VIDEO_SEMELHANTE" and denuncia.decidido_em and denuncia.estado == referencia.estado:

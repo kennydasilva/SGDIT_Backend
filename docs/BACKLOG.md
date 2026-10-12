@@ -247,6 +247,14 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Visto em capturas a 390 px na área do cidadão: Dashboard, Criar Denúncia, Minhas Denúncias, Notificações e Perfil ficam legíveis e usáveis; e a 1280 px (sem alteração). **As tabelas (Minhas Denúncias, Denúncias Recentes) continuam a ter colunas cortadas em telemóvel** — só se vêem deslizando para o lado. As áreas do agente, Admin e Super Admin não foram vistas em telemóvel.
 - **Sigla da província na matrícula passa a ser verificada** (o utilizador pediu para pesquisar as siglas válidas). Lista de 11 províncias: MC (Maputo Cidade), MP (Maputo Província), GZ, IB, SF, MN, TT, ZB, NP, NS e CA (Cabo Delgado). **Cabo Delgado aparece como CA em duas fontes e como CD numa terceira: o sistema aceita as duas**, para nunca recusar uma matrícula verdadeira; nos textos mostra-se CA. Fontes: Wikipédia (EN) "Vehicle registration plates of Mozambique" e openvan.camp — **não foi encontrada fonte oficial do INATTER**; a confirmar pelo utilizador. O erro diz qual a sigla recusada e lista as válidas; o campo em Criar Denúncia tem uma nota com as siglas.
 
+- **Ícones de todo o sistema substituídos** (pedido do utilizador: "substituir todos os ícones de IA por ícones profissionais"; já tinha apontado o escudo com visto). Os ícones de contorno fino (lucide) deram lugar a **Font Awesome sólidos**, com ícones próprios do domínio (acidente = carro em colisão, posto = edifício com escudo, agente = utilizador com escudo, exportar = PDF/Excel).
+  - `components/icons.tsx` passa a ser o único ficheiro que conhece a biblioteca de ícones; as 38 páginas/componentes importam dele pelos nomes que já usavam, por isso trocar de conjunto no futuro é mexer num só ficheiro. Nova dependência: `@fortawesome/free-solid-svg-icons` (`npm install` nos outros ambientes).
+  - **Emojis retirados da interface:** os "⚠️" da fila e do detalhe do agente passaram a ícone; o da notificação "Possível denúncia falsa" foi retirado do texto. **Corrigido de caminho:** `velocidade.py` desenhava "⚠️ EXCESSO VELOCIDADE" no vídeo processado com `cv2.putText`, que não desenha emojis (saíam "??" no vídeo) — fica só o texto.
+  - Ficaram com os ícones antigos os componentes base em `components/ui/` (setas e vistos de menus, quase todos sem uso).
+  - **Corrigido:** em Minhas Denúncias o campo de pesquisa ficava espremido ao lado dos 9 filtros de estado (agravado pelo novo filtro "Em verificação"); passa a ter uma linha própria.
+  - Visto em capturas: Dashboard e Minhas Denúncias do cidadão, e a landing. **As áreas do agente, Admin e Super Admin não foram vistas com os ícones novos.** `tsc`: 12 erros, todos anteriores.
+  - **Notado, não corrigido:** o Dashboard do cidadão mostra "0 denúncias" quando o pedido à API falha, em vez de um erro (aconteceu numa captura tirada enquanto o servidor reiniciava; os dados estavam intactos).
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)

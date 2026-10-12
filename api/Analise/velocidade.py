@@ -366,7 +366,7 @@ def processar_video(caminho, denuncia, salvar_video=True, limite_kmh=60):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
             if excesso:
-                cv2.putText(frame, "⚠️ EXCESSO VELOCIDADE", (x1, y1 - 55),
+                cv2.putText(frame, "EXCESSO VELOCIDADE", (x1, y1 - 55),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
             # Trajetória
