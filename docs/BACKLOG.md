@@ -226,6 +226,13 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - **Registar / Recuperar / Redefinir senha com o visual do login** (o utilizador perguntou porque eram diferentes: na reposição do login original, a 2026-09-30, estes três ecrãs tinham ficado com o estilo novo). `AuthLayout` passa a usar o círculo SGDIT, o cartão centrado e as cores do login. O ecrã de login não foi tocado.
   - Visto em capturas de ecrã (Chrome sem interface) no computador: Início, Guia, e login ao lado do registo. `tsc`: 12 erros, todos anteriores. Não foi clicado manualmente no browser nem revisto em telemóvel real.
 
+- **Landing page refeita depois da reacção do utilizador** ("está muito IA e feio"; enviou duas referências em `leading/`; "essas cores estão muito feias — branco e azul em todo o sistema é o que eu quero"). A versão final:
+  - **Topo em faixa azul com o cartão "Para denunciar precisa de"** (vídeo, matrícula, local; nota do acidente) — foi a parte de que o utilizador gostou ("muito boa, bem explicativa, com informações cruciais"), mantida tal como estava.
+  - Das referências: barra de navegação flutuante, botões em cápsula e ecrãs da aplicação num portátil e num telemóvel (`components/public/DeviceMockups.tsx` — **desenhados em HTML com dados de exemplo, não são capturas reais** nem mostram dados de utilizadores).
+  - **Só branco e o azul do sistema (`#1E40AF`)**: sem tons pálidos de fundo, segundo azul, cinzentos de fundo nem gradientes; "Como funciona" e o fecho em faixa azul. Guia e Sobre nós com o mesmo topo azul e os mesmos painéis.
+  - A pasta `leading/` (duas imagens de referência do utilizador, na raiz do backend) **não foi adicionada ao repositório**.
+  - Visto em captura de ecrã no computador (Início). `tsc`: 12 erros, todos anteriores. **"Branco e azul em todo o sistema" ainda não foi aplicado às páginas internas** (têm fundos cinzentos e etiquetas de estado coloridas) — a decidir com o utilizador.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
