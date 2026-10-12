@@ -173,6 +173,22 @@ class DenunciaService:
                 outra.save()
                 NotificacaoService.estado_alterado(outra, origem="PT")
 
+        # Decisão negativa: só se estende às denúncias com este mesmo vídeo
+        # (o agente já o viu; não faz sentido voltar a aparecer na fila).
+        # As testemunhas com outro vídeo continuam por decidir.
+        elif estado in (Denuncia.Estado.ARQUIVADA, Denuncia.Estado.REJEITADA):
+            copias = Denuncia.objects.filter(
+                video_semelhante_a_id=denuncia.id,
+                estado__in=[Denuncia.Estado.PENDENTE, Denuncia.Estado.VALIDADA],
+                localizacao_contraditoria=False,
+            )
+            for outra in copias:
+                outra.pt = denuncia.pt
+                outra.estado = estado
+                outra.decidido_em = denuncia.decidido_em
+                outra.save()
+                NotificacaoService.estado_alterado(outra, origem="PT")
+
         return denuncia
 
     

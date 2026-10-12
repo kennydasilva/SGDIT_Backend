@@ -52,17 +52,23 @@ class DuplicadosService:
 
     @staticmethod
     def evidencia_com_mesmo_ficheiro(evidencia):
-        """Regra 1: a evidência mais antiga, de uma denúncia anterior, com
-        o mesmo ficheiro (bytes iguais), ou None."""
+        """Regra 1: evidência de uma denúncia anterior com o mesmo ficheiro
+        (bytes iguais), ou None. Havendo várias, prefere a que um agente já
+        decidiu (a decisão mais recente) - é essa decisão que a nova
+        denúncia herda; senão, a mais antiga (a original)."""
         if not evidencia.hash_sha256:
             return None
-        return (
+
+        anteriores = list(
             Evidencia.objects
             .filter(hash_sha256=evidencia.hash_sha256, id__lt=evidencia.id)
             .select_related("denuncia")
             .order_by("id")
-            .first()
         )
+        decididas = [e for e in anteriores if e.denuncia.decidido_em or e.denuncia.pt_id]
+        if decididas:
+            return max(decididas, key=lambda e: (e.denuncia.decidido_em or e.denuncia.atualizado_em, e.id))
+        return anteriores[0] if anteriores else None
 
     @staticmethod
     def _mais_proxima(candidatas, lat, lng):

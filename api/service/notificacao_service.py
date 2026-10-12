@@ -194,6 +194,10 @@ class NotificacaoService:
             mensagem = (f"⚠️ Possível denúncia falsa: o vídeo da denúncia #{denuncia.id} é igual ao da #{referencia.id}, "
                         f"mas foi declarado noutro local ({denuncia.localizacao or 'sem local'}). "
                         f"Fica com o posto da denúncia original, para decisão.")
+        elif motivo == "VIDEO_SEMELHANTE" and denuncia.estado == referencia.estado and denuncia.decidido_em:
+            mensagem = (f"O vídeo da denúncia #{denuncia.id} é igual ao da denúncia #{referencia.id}, já decidida "
+                        f"({referencia.get_estado_display().lower()}). A #{denuncia.id} ficou com a mesma decisão, "
+                        f"sem voltar à fila.")
         elif motivo == "VIDEO_SEMELHANTE":
             mensagem = (f"O vídeo da denúncia #{denuncia.id} é semelhante ao da denúncia #{referencia.id} "
                         f"({referencia.get_estado_display().lower()}). Foram ligadas para decisão conjunta.")

@@ -5,8 +5,10 @@ from collections import defaultdict
 import cv2
 import numpy as np
 from django.db.models import Q
+from django.utils import timezone
 
 from api.model.assinatura_video import AssinaturaFrame
+from api.model.denuncia import Denuncia
 from api.model.evidencia import Evidencia
 
 logger = logging.getLogger(__name__)
@@ -133,6 +135,14 @@ class AssinaturaVideoService:
         return distancia_metros(denuncia.latitude, denuncia.longitude, outra.latitude, outra.longitude) > RAIO_METROS
 
     @staticmethod
+    def decidida_por_agente(denuncia):
+        """Aprovada, arquivada ou rejeitada por um agente (uma rejeição da
+        IA não conta: não tem agente)."""
+        return denuncia.estado in (Denuncia.Estado.APROVADA, Denuncia.Estado.ARQUIVADA) or (
+            denuncia.estado == Denuncia.Estado.REJEITADA and denuncia.pt_id is not None
+        )
+
+    @staticmethod
     def processar(denuncia):
         """
         Calcula e guarda a assinatura do vídeo da denúncia e, se for igual
@@ -175,13 +185,33 @@ class AssinaturaVideoService:
                 denuncia.localizacao_contraditoria = True
                 denuncia.admin_responsavel_id = outra.admin_responsavel_id
 
+            # Decisão do utilizador (2026-10-12): o mesmo vídeo já decidido
+            # por um agente não volta à fila para ser visto outra vez - a
+            # nova denúncia fica logo com essa decisão. Excepção: local
+            # contraditório (provável falsa), que o agente decide à parte.
+            herdou_decisao = (
+                not denuncia.localizacao_contraditoria
+                and denuncia.estado == Denuncia.Estado.PENDENTE
+                and AssinaturaVideoService.decidida_por_agente(outra)
+            )
+            if herdou_decisao:
+                denuncia.estado = outra.estado
+                denuncia.pt_id = outra.pt_id
+                denuncia.decidido_em = timezone.now()
+
             denuncia.save(update_fields=[
                 "video_semelhante_a", "denuncia_principal",
                 "localizacao_contraditoria", "admin_responsavel",
+                "estado", "pt", "decidido_em",
             ])
 
             from api.service.notificacao_service import NotificacaoService
             NotificacaoService.denuncia_relacionada(denuncia, "VIDEO_SEMELHANTE")
+            if herdou_decisao:
+                NotificacaoService.estado_alterado(
+                    denuncia, origem="PT",
+                    detalhe="Este vídeo já tinha sido avaliado por um agente noutra denúncia.",
+                )
 
         except Exception:
             logger.exception("Falha ao calcular a assinatura visual da denúncia %s", denuncia.id)

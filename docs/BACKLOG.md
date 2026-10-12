@@ -195,6 +195,14 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - **Acidentes:** um ficheiro repetido também deixa de ser recusado, mas não há ligação por ficheiro (o acidente não passa pelo worker de análise); continua a valer só a regra 4 (300 m / 1 h).
   - Testado contra a BD, com rollback e ficheiros numa pasta temporária: outro cidadão a reenviar o vídeo da #14 na Malanga → 201, ligada à #14, Super Admin e agentes notificados; o dono da original com outra matrícula → 201, ligada; repetir a tarefa não duplica notificações; mesma matrícula ainda aberta → 409 (regra 2). BD confirmada inalterada. **O caso "possível falsa" com ficheiro igual não foi exercitado** (o ponto de teste não caía em nenhuma jurisdição e a #14 não tem coordenadas); essa parte do código não mudou. **Não testado no browser.** Reiniciar o worker Celery.
 
+- **O mesmo vídeo já decidido por um agente não volta à fila: a nova denúncia herda a decisão** (pedido do utilizador: "seria inútil identificar denúncias duplicadas se o agente tem de voltar a analisar de novo"). Antes, uma relacionada começava sempre em Pendente e, se a outra já estivesse decidida, aparecia sozinha na fila para o agente ver o mesmo vídeo outra vez.
+  - **Ao ligar por vídeo** (ficheiro igual ou visualmente igual), se a denúncia desse vídeo já foi aprovada, arquivada ou rejeitada **por um agente**, a nova fica logo com o mesmo estado e o mesmo agente. O cidadão é notificado ("...Este vídeo já tinha sido avaliado por um agente noutra denúncia."); Admin e agentes recebem "ficou com a mesma decisão, sem voltar à fila". Uma rejeição da IA não é herdada (a IA analisa o vídeo novo normalmente).
+  - **Decisão negativa do agente (arquivar/rejeitar) passa a estender-se às denúncias com o mesmo vídeo** ainda abertas. As testemunhas com **outro** vídeo continuam por decidir, como antes (regra de 2026-09-30 mantida para elas).
+  - **Excepção mantida:** "possível falsa" (mesmo vídeo declarado noutro local) nunca herda; o agente decide-a à parte.
+  - Havendo várias denúncias antigas com o mesmo ficheiro, a referência passa a ser a que um agente já decidiu (decisão mais recente); só sem nenhuma decidida é a mais antiga.
+  - A análise da IA continua a correr e a ficar registada na denúncia nova, mas já não lhe muda o estado (comportamento que já existia para denúncias decididas).
+  - Testado contra a BD com rollback: vídeo de uma denúncia aprovada → nova fica APROVADA de imediato; vídeo ainda na fila → nova fica PENDENTE, e ao arquivar a original passa a ARQUIVADA; reenvio de vídeo já arquivado → ARQUIVADA de imediato. BD confirmada inalterada. **"Possível falsa" não exercitada neste teste; não testado no browser.** Nota: nos relatórios, o "tempo até decidir" destas denúncias é ~0 (decididas no momento em que são ligadas).
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
