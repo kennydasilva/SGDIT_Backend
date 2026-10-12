@@ -36,6 +36,12 @@ class ResultadoAnaliseService:
         if denuncia.estado in (Denuncia.Estado.APROVADA, Denuncia.Estado.REJEITADA, Denuncia.Estado.ARQUIVADA):
             return resultado
 
+        # Estado que veio da ligação a outra denúncia com o mesmo vídeo
+        # (herdado, ou DUVIDOSA por ser noutra jurisdição): a análise deste
+        # vídeo fica registada para o agente, mas não o altera.
+        if denuncia.video_semelhante_a_id and denuncia.estado != Denuncia.Estado.PENDENTE:
+            return resultado
+
         denuncia.estado = Denuncia.Estado.VALIDADA if alertas > 0 else Denuncia.Estado.REJEITADA
         denuncia.save()
 

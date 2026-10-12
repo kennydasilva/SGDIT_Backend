@@ -17,6 +17,7 @@ ESTADO_LABEL = {
     "PENDENTE": "Pendente", "VALIDADA": "Validada", "APROVADA": "Aprovada",
     "REJEITADA": "Rejeitada", "ARQUIVADA": "Arquivada",
     "ENCAMINHADA": "Enviada ao posto", "EM_ATENDIMENTO": "Agente designado",
+    "DUVIDOSA": "Duvidosa",
 }
 TIPO_LABEL = {
     "CONTRAMAO": "Contramão", "PARADO": "Veículo parado",

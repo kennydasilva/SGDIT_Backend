@@ -27,6 +27,7 @@ ESTADOS_ABERTOS = [
     Denuncia.Estado.VALIDADA,
     Denuncia.Estado.ENCAMINHADA,
     Denuncia.Estado.EM_ATENDIMENTO,
+    Denuncia.Estado.DUVIDOSA,
 ]
 
 

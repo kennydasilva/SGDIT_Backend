@@ -27,7 +27,13 @@ MENSAGEM_ESTADO_CIDADAO = {
     "ARQUIVADA": "A denúncia foi arquivada.",
     "ENCAMINHADA": "O acidente foi enviado ao posto policial responsável pela zona.",
     "EM_ATENDIMENTO": "Foi designado um agente para o local do acidente.",
+    # O cidadão não é informado da suspeita (mesmo vídeo noutra
+    # jurisdição), só de que há uma verificação por fazer.
+    "DUVIDOSA": "A denúncia precisa de uma verificação adicional por um agente de trânsito antes de avançar.",
 }
+
+# Estado tal como o cidadão o lê, quando difere do rótulo interno.
+ESTADO_TITULO_CIDADAO = {"DUVIDOSA": "Em verificação"}
 
 
 class NotificacaoService:
@@ -149,7 +155,7 @@ class NotificacaoService:
         NotificacaoService.notificar(
             [denuncia.cidadao.utilizador],
             Notificacao.Tipo.ESTADO_ALTERADO,
-            f"Denúncia #{denuncia.id}: {denuncia.get_estado_display()}",
+            f"Denúncia #{denuncia.id}: {ESTADO_TITULO_CIDADAO.get(denuncia.estado, denuncia.get_estado_display())}",
             mensagem,
             denuncia,
         )
@@ -190,17 +196,20 @@ class NotificacaoService:
             return
 
         referencia = denuncia.video_semelhante_a if motivo == "VIDEO_SEMELHANTE" and denuncia.video_semelhante_a else principal
+        estado_ref = referencia.get_estado_display().lower()
         if motivo == "VIDEO_SEMELHANTE" and denuncia.localizacao_contraditoria:
             mensagem = (f"⚠️ Possível denúncia falsa: o vídeo da denúncia #{denuncia.id} é igual ao da #{referencia.id}, "
-                        f"mas foi declarado noutro local ({denuncia.localizacao or 'sem local'}). "
-                        f"Fica com o posto da denúncia original, para decisão.")
-        elif motivo == "VIDEO_SEMELHANTE" and denuncia.estado == referencia.estado and denuncia.decidido_em:
+                        f"mas foi declarado noutra jurisdição ({denuncia.localizacao or 'sem local'}). "
+                        f"Ficou em estado duvidoso, no posto da denúncia original, a aguardar a decisão de um agente.")
+        elif motivo == "VIDEO_SEMELHANTE" and denuncia.decidido_em and denuncia.estado == referencia.estado:
             mensagem = (f"O vídeo da denúncia #{denuncia.id} é igual ao da denúncia #{referencia.id}, já decidida "
-                        f"({referencia.get_estado_display().lower()}). A #{denuncia.id} ficou com a mesma decisão, "
-                        f"sem voltar à fila.")
+                        f"({estado_ref}). A #{denuncia.id} ficou com a mesma decisão, sem voltar à fila.")
+        elif motivo == "VIDEO_SEMELHANTE" and denuncia.estado == referencia.estado != Denuncia.Estado.PENDENTE:
+            mensagem = (f"O vídeo da denúncia #{denuncia.id} é igual ao da denúncia #{referencia.id}, na mesma "
+                        f"jurisdição. A #{denuncia.id} ficou com o mesmo estado ({estado_ref}).")
         elif motivo == "VIDEO_SEMELHANTE":
-            mensagem = (f"O vídeo da denúncia #{denuncia.id} é semelhante ao da denúncia #{referencia.id} "
-                        f"({referencia.get_estado_display().lower()}). Foram ligadas para decisão conjunta.")
+            mensagem = (f"O vídeo da denúncia #{denuncia.id} é igual ao da denúncia #{referencia.id} "
+                        f"({estado_ref}). Foram ligadas para decisão conjunta.")
         else:
             mensagem = (f"Outro cidadão denunciou a mesma infração ({NotificacaoService._tipo(denuncia)}, "
                         f"matrícula {denuncia.matricula}). A denúncia #{denuncia.id} foi ligada à #{principal.id} como testemunha.")

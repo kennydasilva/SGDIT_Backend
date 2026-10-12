@@ -34,9 +34,11 @@ class DenunciaService:
         """
         # Relacionada cuja principal já está na fila: o grupo aparece uma
         # só vez (na principal, com "+N testemunhas").
-        # Excepção: localização contraditória (provável falsa) aparece
-        # sempre, para o agente a decidir explicitamente.
-        qs = Denuncia.objects.filter(estado="VALIDADA").exclude(
+        # Excepção: localização contraditória (provável falsa, estado
+        # DUVIDOSA) aparece sempre, para o agente a decidir explicitamente.
+        qs = Denuncia.objects.filter(
+            estado__in=[Denuncia.Estado.VALIDADA, Denuncia.Estado.DUVIDOSA]
+        ).exclude(
             denuncia_principal__estado=Denuncia.Estado.VALIDADA,
             localizacao_contraditoria=False,
         )
@@ -134,10 +136,13 @@ class DenunciaService:
     def actualizar_estado_PT(denuncia_id, estado, codigo_legal, descricao_pt, pt_id):
 
         denuncia = Denuncia.objects.get(id=denuncia_id)
+        # Uma denúncia DUVIDOSA entra na fila logo ao ser ligada, podendo
+        # ser decidida antes de a análise automática terminar.
         analise=ResultadoAnaliseService.obter_por_denuncia(denuncia_id=denuncia.id)
-        analise.codigo_legal=codigo_legal
-        analise.descricao=descricao_pt
-        analise.save()
+        if analise:
+            analise.codigo_legal=codigo_legal
+            analise.descricao=descricao_pt
+            analise.save()
 
         denuncia.pt = DenunciaService.encontrar_utilizador_PT(pt_id)
         estado_anterior = denuncia.estado

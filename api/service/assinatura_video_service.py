@@ -124,12 +124,16 @@ class AssinaturaVideoService:
 
     @staticmethod
     def localizacao_contradiz(denuncia, outra):
-        """Os dois locais declarados para o mesmo vídeo não batem certo:
-        jurisdições diferentes ou mais de 300 m de distância."""
+        """O mesmo vídeo foi declarado noutra jurisdição. Com as duas no
+        mesmo posto, não contradiz (decisão do utilizador, 2026-10-12: na
+        mesma jurisdição herda o estado). Sem posto em nenhuma das duas não
+        há jurisdição para comparar: vale a distância (mais de 300 m)."""
         from api.service.duplicados_service import RAIO_METROS, distancia_metros
 
         if denuncia.admin_responsavel_id != outra.admin_responsavel_id:
             return True
+        if denuncia.admin_responsavel_id is not None:
+            return False
         if None in (denuncia.latitude, denuncia.longitude, outra.latitude, outra.longitude):
             return False
         return distancia_metros(denuncia.latitude, denuncia.longitude, outra.latitude, outra.longitude) > RAIO_METROS
@@ -171,33 +175,39 @@ class AssinaturaVideoService:
             if not semelhante or semelhante.denuncia_id == denuncia.id:
                 return
 
+            # Sempre a denúncia original desse vídeo, nunca uma cópia dela:
+            # é com o local e a decisão da original que se compara (uma
+            # cópia pode ter sido arquivada só por ser de outra jurisdição).
             outra = semelhante.denuncia
+            for _ in range(20):
+                if not outra.video_semelhante_a_id or outra.video_semelhante_a_id == denuncia.id:
+                    break
+                outra = outra.video_semelhante_a
             denuncia.video_semelhante_a = outra
             # Liga ao grupo (sempre à principal), se ainda não estiver ligada
             # por ser a mesma infração.
             if not denuncia.denuncia_principal_id:
                 denuncia.denuncia_principal_id = outra.denuncia_principal_id or outra.id
 
-            # Mesmo vídeo declarado noutro local: provável denúncia falsa.
-            # Decisão do utilizador: o posto da denúncia original fica com
-            # ela (o vídeo é dele), o outro posto não é envolvido.
+            # Decisões do utilizador (2026-10-12):
+            #  - mesma jurisdição: a nova fica imediatamente com o estado
+            #    da denúncia que já tem este vídeo (e o agente que a
+            #    decidiu, se já foi decidida) - o agente não volta a ver o
+            #    mesmo vídeo;
+            #  - outra jurisdição: provável denúncia falsa. Não herda nada:
+            #    fica DUVIDOSA, no posto da denúncia original (o vídeo é
+            #    dele), e um agente desse posto decide-a quando a for ver.
+            estado_anterior = denuncia.estado
             if AssinaturaVideoService.localizacao_contradiz(denuncia, outra):
                 denuncia.localizacao_contraditoria = True
                 denuncia.admin_responsavel_id = outra.admin_responsavel_id
-
-            # Decisão do utilizador (2026-10-12): o mesmo vídeo já decidido
-            # por um agente não volta à fila para ser visto outra vez - a
-            # nova denúncia fica logo com essa decisão. Excepção: local
-            # contraditório (provável falsa), que o agente decide à parte.
-            herdou_decisao = (
-                not denuncia.localizacao_contraditoria
-                and denuncia.estado == Denuncia.Estado.PENDENTE
-                and AssinaturaVideoService.decidida_por_agente(outra)
-            )
-            if herdou_decisao:
+                if denuncia.estado == Denuncia.Estado.PENDENTE:
+                    denuncia.estado = Denuncia.Estado.DUVIDOSA
+            elif denuncia.estado == Denuncia.Estado.PENDENTE:
                 denuncia.estado = outra.estado
-                denuncia.pt_id = outra.pt_id
-                denuncia.decidido_em = timezone.now()
+                if AssinaturaVideoService.decidida_por_agente(outra):
+                    denuncia.pt_id = outra.pt_id
+                    denuncia.decidido_em = timezone.now()
 
             denuncia.save(update_fields=[
                 "video_semelhante_a", "denuncia_principal",
@@ -207,10 +217,12 @@ class AssinaturaVideoService:
 
             from api.service.notificacao_service import NotificacaoService
             NotificacaoService.denuncia_relacionada(denuncia, "VIDEO_SEMELHANTE")
-            if herdou_decisao:
+            if denuncia.estado != estado_anterior:
+                por_agente = denuncia.decidido_em is not None
                 NotificacaoService.estado_alterado(
-                    denuncia, origem="PT",
-                    detalhe="Este vídeo já tinha sido avaliado por um agente noutra denúncia.",
+                    denuncia,
+                    origem="PT" if por_agente else "IA",
+                    detalhe="Este vídeo já tinha sido avaliado por um agente noutra denúncia." if por_agente else None,
                 )
 
         except Exception:
