@@ -29,7 +29,7 @@ from api.tasks.analise_task import processar_analise_async
 from api.tasks.notificacao_task import notificar_admin_acidente
 from api.service.duplicados_service import DuplicadosService
 from api.helper.dataConvertion import formatar_data
-from api.helper.matricula import normalizar_matricula, MENSAGEM_FORMATO
+from api.helper.matricula import validar_matricula
 from api.pagination import PaginacaoPadrao
 from api.permissions.role_permissions import IsAdmin, IsAdminOrSuperAdmin, IsPTOrAdminOrSuperAdmin
 
@@ -174,9 +174,9 @@ class DenunciaViewSet(ViewSet):
             # ser válida.
             matricula = (request.data.get("matricula") or "").strip()
             if matricula or not eh_acidente:
-                matricula = normalizar_matricula(matricula)
-                if not matricula:
-                    return Response({"error": MENSAGEM_FORMATO}, status=400)
+                matricula, erro_matricula = validar_matricula(matricula)
+                if erro_matricula:
+                    return Response({"error": erro_matricula}, status=400)
 
             # Acidente de viação é reporte direto ao posto responsável, sem
             # análise de vídeo por IA (não há tempo para isso) - por isso

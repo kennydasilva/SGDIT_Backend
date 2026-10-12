@@ -243,6 +243,10 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - **As 19 denúncias já gravadas ficam com as matrículas no formato antigo** (não foram convertidas). As siglas de província não são verificadas contra uma lista (aceita quaisquer duas letras) — a decidir se deve haver lista fechada.
 - **Ecrã de registo explícito: só para cidadãos** (pedido do utilizador): título "Criar conta de cidadão" e aviso acima do formulário a dizer que agentes e administradores recebem a conta do posto, com ligação para o login.
 
+- **Aplicação utilizável no telemóvel** (autorizado pelo utilizador depois de o problema ter sido encontrado nas capturas): em ecrãs com menos de 1024 px a barra lateral do `AppShell` fica escondida e abre como menu por cima do conteúdo (botão no topo, com ponto vermelho quando há notificações por ler; fecha ao escolher uma página ou ao tocar fora). No computador fica como estava. Vale para os 4 perfis. O espaçamento das páginas passou a ser menor em ecrãs pequenos (`p-4 sm:p-6 lg:p-8`).
+  - Visto em capturas a 390 px na área do cidadão: Dashboard, Criar Denúncia, Minhas Denúncias, Notificações e Perfil ficam legíveis e usáveis; e a 1280 px (sem alteração). **As tabelas (Minhas Denúncias, Denúncias Recentes) continuam a ter colunas cortadas em telemóvel** — só se vêem deslizando para o lado. As áreas do agente, Admin e Super Admin não foram vistas em telemóvel.
+- **Sigla da província na matrícula passa a ser verificada** (o utilizador pediu para pesquisar as siglas válidas). Lista de 11 províncias: MC (Maputo Cidade), MP (Maputo Província), GZ, IB, SF, MN, TT, ZB, NP, NS e CA (Cabo Delgado). **Cabo Delgado aparece como CA em duas fontes e como CD numa terceira: o sistema aceita as duas**, para nunca recusar uma matrícula verdadeira; nos textos mostra-se CA. Fontes: Wikipédia (EN) "Vehicle registration plates of Mozambique" e openvan.camp — **não foi encontrada fonte oficial do INATTER**; a confirmar pelo utilizador. O erro diz qual a sigla recusada e lista as válidas; o campo em Criar Denúncia tem uma nota com as siglas.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
