@@ -29,6 +29,7 @@ from api.tasks.analise_task import processar_analise_async
 from api.tasks.notificacao_task import notificar_admin_acidente
 from api.service.duplicados_service import DuplicadosService
 from api.helper.dataConvertion import formatar_data
+from api.helper.matricula import normalizar_matricula, MENSAGEM_FORMATO
 from api.pagination import PaginacaoPadrao
 from api.permissions.role_permissions import IsAdmin, IsAdminOrSuperAdmin, IsPTOrAdminOrSuperAdmin
 
@@ -172,8 +173,10 @@ class DenunciaViewSet(ViewSet):
             # pode não ver/saber a matrícula); quando enviada, tem sempre de
             # ser válida.
             matricula = (request.data.get("matricula") or "").strip()
-            if (matricula or not eh_acidente) and not re.fullmatch(r"[A-Za-z]{2}-\d{2}-[A-Za-z]{2}", matricula):
-                return Response({"error": "Matrícula inválida (formato AB-12-CD)"}, status=400)
+            if matricula or not eh_acidente:
+                matricula = normalizar_matricula(matricula)
+                if not matricula:
+                    return Response({"error": MENSAGEM_FORMATO}, status=400)
 
             # Acidente de viação é reporte direto ao posto responsável, sem
             # análise de vídeo por IA (não há tempo para isso) - por isso
@@ -243,7 +246,7 @@ class DenunciaViewSet(ViewSet):
 
             denuncia = DenunciaService.criar_denuncia(
                 request.data.get("cidadao_id"),
-                matricula.upper(),
+                matricula,
                 request.data.get("descricao"),
                 tipo_infracao,
                 request.data.get("localizacao"),
