@@ -7,8 +7,11 @@ from django.utils import timezone
 from api.model.denuncia import Denuncia
 from api.model.evidencia import Evidencia
 
-# Regras decididas com o utilizador (2026-09-30):
-#  1. O mesmo ficheiro nunca pode ser usado em duas denúncias.
+# Regras decididas com o utilizador (2026-09-30; regra 1 alterada em
+# 2026-10-12):
+#  1. O mesmo ficheiro usado noutra denúncia não é recusado: a nova fica
+#     ligada à anterior como relacionada (e marcada como possível falsa se
+#     o local declarado for outro) - ver AssinaturaVideoService.
 #  2. O mesmo cidadão não pode ter duas denúncias abertas para a mesma
 #     matrícula e tipo (num acidente: o mesmo local/hora).
 #  3. Cidadãos diferentes a denunciar a mesma infração: a nova fica ligada
@@ -48,8 +51,18 @@ class DuplicadosService:
         return h.hexdigest()
 
     @staticmethod
-    def ficheiro_ja_usado(hash_sha256):
-        return Evidencia.objects.filter(hash_sha256=hash_sha256).select_related("denuncia").first()
+    def evidencia_com_mesmo_ficheiro(evidencia):
+        """Regra 1: a evidência mais antiga, de uma denúncia anterior, com
+        o mesmo ficheiro (bytes iguais), ou None."""
+        if not evidencia.hash_sha256:
+            return None
+        return (
+            Evidencia.objects
+            .filter(hash_sha256=evidencia.hash_sha256, id__lt=evidencia.id)
+            .select_related("denuncia")
+            .order_by("id")
+            .first()
+        )
 
     @staticmethod
     def _mais_proxima(candidatas, lat, lng):

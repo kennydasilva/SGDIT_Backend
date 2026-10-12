@@ -17,9 +17,9 @@ class Evidencia(models.Model):
 
     data_captura = models.DateTimeField(auto_now_add=True)
 
-    # Impressão digital do ficheiro: o mesmo ficheiro nunca pode ser usado
-    # em duas denúncias. Não é `unique` porque já existem repetidos de
-    # antes desta regra (deixados como estão, por decisão do utilizador).
+    # Impressão digital do ficheiro: uma denúncia com o mesmo ficheiro de
+    # outra fica ligada a ela como relacionada (não é recusada), por isso
+    # não é `unique`.
     hash_sha256 = models.CharField(max_length=64, null=True, blank=True, db_index=True)
 
     def __str__(self):

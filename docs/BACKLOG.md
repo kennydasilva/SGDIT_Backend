@@ -185,6 +185,16 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - **Reencaminhar denúncias sem posto** (pedido do utilizador a seguir): `JurisdicaoService.reencaminhar_sem_posto()`, corrido automaticamente ao adicionar zona/vias (resposta traz `reencaminhadas`) e pelo botão "Reencaminhar denúncias sem posto" no mapa de cobertura (`POST jurisdicoes/reencaminhar`). Só denúncias abertas (PENDENTE/VALIDADA) com local no mapa. Acidente pendente → "Enviada ao posto", com notificação ao Admin e ao cidadão; **SMS só se o acidente tiver menos de 2 h** (um acidente antigo já não justifica um SMS pago). Frontend avisa quantas passaram e para que posto.
     - Testado com rollback: zona temporária em Hulene para Mavalane → as 4 denúncias antigas de lá (3 acidentes + 1 contramão) passaram para Mavalane, os acidentes a "Enviada ao posto"; só o acidente recente (<2 h) pediu SMS; notificações ao Admin e cidadãos; repetir não reencaminha duas vezes; BD confirmada inalterada no fim.
 
+## 2026-10-12
+
+### 🔄 Em progresso — implementado, aguarda validação do utilizador
+
+- **O mesmo ficheiro numa nova denúncia deixa de ser recusado: fica registado e relacionado** (reportado pelo utilizador: tentou denunciar na zona da Malanga com um vídeo já usado e recebeu "Este ficheiro já foi enviado" em vez de a denúncia ser guardada como relacionada). Não era erro: era a regra 1 de 2026-09-30 ("mesmo ficheiro, recusado sempre"), que só deixava passar os vídeos cortados/recomprimidos. **Decisão do utilizador (2026-10-12): o ficheiro igual também é aceite e relacionado.** A regra antiga tornava impossível o caso mais simples de "mesmo vídeo declarado noutro local → possível falsa": o reenvio do ficheiro tal e qual era travado antes de chegar a essa verificação.
+  - Backend: `POST denuncias/` já não devolve 409 por ficheiro repetido (o bloqueio no Redis por hash também saiu). No worker, antes da IA, `AssinaturaVideoService.processar` liga primeiro por ficheiro igual (SHA-256, à denúncia **mais antiga** com esse ficheiro) e só depois por conteúdo visual; o resto é o que já existia (relacionada, "possível falsa" se o local for outro, notificação ao Admin e agentes do posto).
+  - **Continua recusado (regra 2):** o mesmo cidadão com a mesma matrícula + tipo enquanto a denúncia anterior estiver aberta.
+  - **Acidentes:** um ficheiro repetido também deixa de ser recusado, mas não há ligação por ficheiro (o acidente não passa pelo worker de análise); continua a valer só a regra 4 (300 m / 1 h).
+  - Testado contra a BD, com rollback e ficheiros numa pasta temporária: outro cidadão a reenviar o vídeo da #14 na Malanga → 201, ligada à #14, Super Admin e agentes notificados; o dono da original com outra matrícula → 201, ligada; repetir a tarefa não duplica notificações; mesma matrícula ainda aberta → 409 (regra 2). BD confirmada inalterada. **O caso "possível falsa" com ficheiro igual não foi exercitado** (o ponto de teste não caía em nenhuma jurisdição e a #14 não tem coordenadas); essa parte do código não mudou. **Não testado no browser.** Reiniciar o worker Celery.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)

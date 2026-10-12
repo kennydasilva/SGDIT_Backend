@@ -149,15 +149,12 @@ class DenunciaViewSet(ViewSet):
         from django.conf import settings
 
         chave_pedido = None
-        chaves_bloqueio = []
 
         def _recusar_duplicada(mensagem, **extra):
             # Liberta o pedido (o cidadão pode corrigir e reenviar o mesmo
-            # formulário) e os bloqueios tomados por este pedido.
+            # formulário).
             if chave_pedido:
                 cache.delete(chave_pedido)
-            for chave in chaves_bloqueio:
-                cache.delete(chave)
             return Response(
                 {"error": mensagem, "codigo": "DUPLICADA", **extra},
                 status=status.HTTP_409_CONFLICT
@@ -225,24 +222,12 @@ class DenunciaViewSet(ViewSet):
             longitude = _para_float(request.data.get("longitude"))
             cidadao = DenunciaService.encontrar_utilizador_cidadao(request.data.get("cidadao_id"))
 
-            # Regra 1: o mesmo ficheiro nunca entra em duas denúncias. O
-            # bloqueio no Redis cobre dois envios simultâneos do mesmo
-            # ficheiro (ainda nenhum gravado na BD quando ambos verificam).
-            hash_ficheiro = None
-            if ficheiro:
-                hash_ficheiro = DuplicadosService.calcular_hash(ficheiro)
-                usada = DuplicadosService.ficheiro_ja_usado(hash_ficheiro)
-                chave_hash = f"evidencia_hash:{hash_ficheiro}"
-                if usada or not cache.add(chave_hash, 1, timeout=600):
-                    # Só mostra o número se a denúncia for do próprio
-                    # cidadão - nunca revelar denúncias de outros.
-                    propria = usada and usada.denuncia.cidadao_id == cidadao.id
-                    return _recusar_duplicada(
-                        f"Este ficheiro já foi enviado na denúncia #{usada.denuncia_id}." if propria
-                        else "Este ficheiro já foi enviado numa denúncia anterior.",
-                        id=usada.denuncia_id if propria else None,
-                    )
-                chaves_bloqueio.append(chave_hash)
+            # O mesmo ficheiro já usado noutra denúncia NÃO é recusado
+            # (decisão do utilizador, 2026-10-12): a denúncia é registada e
+            # fica ligada à anterior como relacionada, no worker (ver
+            # AssinaturaVideoService.processar). O hash serve para essa
+            # ligação.
+            hash_ficheiro = DuplicadosService.calcular_hash(ficheiro) if ficheiro else None
 
             # Regra 2: o mesmo cidadão não abre duas denúncias para a
             # mesma coisa enquanto a anterior não estiver fechada.
@@ -305,8 +290,6 @@ class DenunciaViewSet(ViewSet):
             # outra vez com o mesmo formulário.
             if chave_pedido:
                 cache.delete(chave_pedido)
-            for chave in chaves_bloqueio:
-                cache.delete(chave)
             traceback.print_exc()
             return Response({"error": str(e)}, status=500)
 

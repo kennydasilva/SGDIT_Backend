@@ -47,10 +47,10 @@ def _dhash(frame_cinzento):
 
 class AssinaturaVideoService:
     """
-    Regra decidida com o utilizador: o mesmo ficheiro (bytes iguais) é
-    recusado no envio (SHA-256); um vídeo visualmente igual a outro já
-    enviado (cortado, recomprimido, outra resolução) NÃO é recusado - fica
-    ligado à denúncia anterior como relacionada, e o agente decide.
+    Regra decidida com o utilizador: um vídeo já enviado noutra denúncia -
+    o mesmo ficheiro (bytes iguais, SHA-256) ou visualmente igual (cortado,
+    recomprimido, outra resolução) - NÃO é recusado: fica ligado à denúncia
+    anterior como relacionada, e o agente decide.
     """
 
     @staticmethod
@@ -151,7 +151,13 @@ class AssinaturaVideoService:
             hashes = AssinaturaVideoService.calcular(evidencia.caminho_ficheiro.path)
             AssinaturaVideoService.guardar(evidencia, hashes)
 
-            semelhante = AssinaturaVideoService.encontrar_semelhante(hashes, evidencia.id)
+            # O mesmo ficheiro é uma correspondência certa (e aponta para
+            # a denúncia original); só sem ela se compara o conteúdo visual.
+            from api.service.duplicados_service import DuplicadosService
+            semelhante = (
+                DuplicadosService.evidencia_com_mesmo_ficheiro(evidencia)
+                or AssinaturaVideoService.encontrar_semelhante(hashes, evidencia.id)
+            )
             if not semelhante or semelhante.denuncia_id == denuncia.id:
                 return
 
