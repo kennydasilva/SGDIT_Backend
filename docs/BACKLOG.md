@@ -218,6 +218,14 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - **Botão "Alterar Senha" não fazia nada** (sem `onClick` e sem endpoint): novo `POST /api/auth/password-change/` (autenticado; pede a senha actual, aplica a regra de senha forte, recusa nova = actual) e `components/AlterarSenhaModal.tsx`, ligado nos perfis do cidadão e do agente. Testado com rollback: sem login → 401; senha actual errada / nova fraca / igual à actual → 400; correcta → 200 e a nova senha passa a valer.
   - `tsc`: 12 erros, todos anteriores. **Não testado no browser.**
 
+- **Landing page e páginas públicas** (pedido do utilizador: "deve abrir primeiro a landing page, depois vai ao login ou cadastro"; "na nav bar pode ter Sobre nós e Guia"; "tudo com um visual moderno, suave e uniforme, só com as cores do sistema").
+  - `/` deixa de redireccionar para o login e passa a abrir a landing page. **"Faça a sua primeira denúncia"** e "Criar conta" levam ao registo do cidadão (`/cadastrar`); **"Entrar no sistema"** leva ao login único de todos os perfis (`/login`).
+  - Três páginas com cabeçalho e rodapé comuns (`components/public/PublicLayout.tsx`, navegação Início / Guia / Sobre nós, menu próprio em ecrãs pequenos): **Início** (`/`), **Guia** (`/guia`: passo a passo da denúncia, os quatro tipos de ocorrência tratados, o significado de cada estado, cuidados para a denúncia ser aceite) e **Sobre nós** (`/sobre`: o que é o SGDIT, os quatro perfis, princípios).
+  - Blocos visuais partilhados em `components/public/publicUi.tsx` (cartões, botões, ícones, títulos, chamada final) para as três ficarem iguais; só azul do sistema (`#1E40AF` / `#2563EB`), branco e cinzentos.
+  - **Texto de "Sobre nós" é genérico sobre o sistema** — não inventa equipa, instituição nem contactos; **o utilizador deve indicar** o que quer lá (quem desenvolveu, instituição, contactos).
+  - **Registar / Recuperar / Redefinir senha com o visual do login** (o utilizador perguntou porque eram diferentes: na reposição do login original, a 2026-09-30, estes três ecrãs tinham ficado com o estilo novo). `AuthLayout` passa a usar o círculo SGDIT, o cartão centrado e as cores do login. O ecrã de login não foi tocado.
+  - Visto em capturas de ecrã (Chrome sem interface) no computador: Início, Guia, e login ao lado do registo. `tsc`: 12 erros, todos anteriores. Não foi clicado manualmente no browser nem revisto em telemóvel real.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
