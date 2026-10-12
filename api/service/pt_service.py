@@ -34,7 +34,7 @@ class PTService:
         pt= PT.objects.create(
             utilizador=utilizador,
             numero_agente=numero_agente,
-            localizacao=localizacao,
+            localizacao=localizacao or "",
             admin=admin
         )
 

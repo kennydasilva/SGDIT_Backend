@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from api.service.auth_service import AuthService
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_yasg.utils import swagger_auto_schema
@@ -120,3 +121,38 @@ class PasswordResetConfirmController(APIView):
             )
 
         return Response({"message": "Senha redefinida com sucesso"})
+
+
+class PasswordChangeController(APIView):
+    """Utilizador autenticado (qualquer papel) altera a própria senha,
+    confirmando a actual."""
+
+    permission_classes=[IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Alterar a própria senha",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "senha_atual": openapi.Schema(type=openapi.TYPE_STRING),
+                "nova_senha": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        )
+    )
+    def post(self, request):
+
+        senha_atual = request.data.get("senha_atual")
+        nova_senha = request.data.get("nova_senha")
+
+        if not senha_atual or not nova_senha:
+            return Response(
+                {"error": "senha_atual e nova_senha são obrigatórias"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        erro = AuthService.alterar_senha(request.user, senha_atual, nova_senha)
+
+        if erro:
+            return Response({"error": erro}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"message": "Senha alterada com sucesso"})

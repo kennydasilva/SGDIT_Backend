@@ -212,6 +212,12 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Frontend: estado "Duvidosa" (cidadão vê "Em verificação") nas listas, filtros, relatórios e dashboards; o agente pode decidir denúncias duvidosas; **as notificações do Admin e do Super Admin abrem agora a denúncia em causa** (`/admin/denuncias/:id`, `/super-admin/denuncias/:id` — a página de detalhe do agente em modo de consulta, sem botões de decisão). Antes o Admin não tinha link e o Super Admin ia para a lista geral. Fica como estava: a notificação de designação para um acidente (agente) continua sem link, e a de acidente do Admin abre a lista de acidentes.
   - Testado contra a BD com rollback (vídeo sintético, postos 7 e 8 reais): mesma jurisdição a ~450 m → VALIDADA de imediato, escondida atrás da original, IA sem alertas não a altera; outra jurisdição → DUVIDOSA no posto 7, na fila do 7 e fora da do 8, só o posto 7 notificado; aprovar a original → cópia APROVADA, duvidosa intacta; agente arquiva a duvidosa; novo envio depois → APROVADA (da original). BD confirmada inalterada. `tsc`: 12 erros, todos anteriores. **Não testado no browser.** Nos outros ambientes: `migrate` e reiniciar o Celery.
 
+- **Três pedidos de interface do utilizador:**
+  - **Campo "Zona de atuação" retirado do ecrã de agentes do Admin** (`Admin/Policias.tsx`: coluna da tabela e campo do formulário). O agente pertence ao posto do Admin. O campo `PT.localizacao` continua a existir na BD (fica vazio nos agentes novos; os antigos mantêm o valor) e ainda aparece em `SuperAdmin/Policiais.tsx` e como "Divisão" no perfil do agente — **a decidir se também sai de lá.**
+  - **Telemóvel com o indicativo +258 fixo**: novo `components/TelefoneInput.tsx` (o +258 aparece fixo à esquerda; o utilizador escreve só os 9 dígitos). Aplicado em Registar (cidadão), perfil do cidadão e criar/editar Admin. O número continua a ser gravado completo (`+258841234567`); os números já gravados com espaços são lidos correctamente.
+  - **Botão "Alterar Senha" não fazia nada** (sem `onClick` e sem endpoint): novo `POST /api/auth/password-change/` (autenticado; pede a senha actual, aplica a regra de senha forte, recusa nova = actual) e `components/AlterarSenhaModal.tsx`, ligado nos perfis do cidadão e do agente. Testado com rollback: sem login → 401; senha actual errada / nova fraca / igual à actual → 400; correcta → 200 e a nova senha passa a valer.
+  - `tsc`: 12 erros, todos anteriores. **Não testado no browser.**
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
