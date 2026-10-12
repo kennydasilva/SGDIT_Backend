@@ -37,7 +37,7 @@ class PtViewSet(ViewSet):
         responses={200: PTResponseSerializer(many=True)}
     )
     def list(self, request):
-        pts = PTService.listar_pts().select_related("utilizador").order_by("id")
+        pts = PTService.listar_pts().select_related("utilizador").order_by("-id")
 
         paginator = self.pagination_class()
         pagina = paginator.paginate_queryset(pts, request, view=self)
@@ -116,7 +116,7 @@ class PtViewSet(ViewSet):
     @action(detail=False, methods=["get"], url_path="admin/(?P<admin_id>[^/.]+)")
     def listar_por_admin(self, request, admin_id=None):
 
-        pts = PTService.listar_pts_por_admin(admin_id).select_related("utilizador").order_by("id")
+        pts = PTService.listar_pts_por_admin(admin_id).select_related("utilizador").order_by("-id")
 
         paginator = self.pagination_class()
         pagina = paginator.paginate_queryset(pts, request, view=self)

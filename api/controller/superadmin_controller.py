@@ -41,16 +41,18 @@ class SuperAdminViewSet(ViewSet):
     @action(detail=False, methods=["get"], url_path="cidadao/lista")
     def listar_cidadaos(self, request):
 
-        ordering = request.query_params.get("ordering", "-utilizador__data_registo")
-        campo = ordering.lstrip("-")
-        campo_real = CAMPOS_ORDENACAO_CIDADAOS.get(campo)
+        # Por omissão, do mais recente para o mais antigo. O id segue a
+        # ordem de criação; a data de registo está vazia nas contas antigas,
+        # o que as punha no topo sem ordem.
+        ordering = request.query_params.get("ordering", "")
+        campo_real = CAMPOS_ORDENACAO_CIDADAOS.get(ordering.lstrip("-"))
 
         if not campo_real:
-            ordering = "-utilizador__data_registo"
+            ordem = ["-id"]
         else:
-            ordering = f"-{campo_real}" if ordering.startswith("-") else campo_real
+            ordem = [f"-{campo_real}" if ordering.startswith("-") else campo_real, "-id"]
 
-        cidadaos = CidadaoService.listar_cidadaos().select_related("utilizador").order_by(ordering)
+        cidadaos = CidadaoService.listar_cidadaos().select_related("utilizador").order_by(*ordem)
 
         paginator = self.pagination_class()
         pagina = paginator.paginate_queryset(cidadaos, request, view=self)

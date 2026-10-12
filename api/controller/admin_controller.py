@@ -20,7 +20,7 @@ class AdminController(APIView):
     )
     def get(self, request):
 
-        admins=AdminService.listar_admins().select_related("utilizador").order_by("id")
+        admins=AdminService.listar_admins().select_related("utilizador").order_by("-id")
 
         paginator = PaginacaoPadrao()
         pagina = paginator.paginate_queryset(admins, request, view=self)

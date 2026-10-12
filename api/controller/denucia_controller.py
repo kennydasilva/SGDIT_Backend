@@ -46,7 +46,9 @@ class DenunciaViewSet(ViewSet):
         if campo not in self.CAMPOS_ORDENACAO_VALIDOS:
             ordering = "-data_registo"
 
-        return queryset.order_by(ordering)
+        # O id desempata registos com a mesma data, para a ordem ser sempre
+        # a mesma de página para página.
+        return queryset.order_by(ordering, "-id")
 
     def _listar_paginado(self, request, denuncias):
 

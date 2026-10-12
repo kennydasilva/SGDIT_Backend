@@ -263,7 +263,7 @@ class NotificacaoService:
         qs = Notificacao.objects.filter(utilizador=utilizador)
         if so_nao_lidas:
             qs = qs.filter(lida=False)
-        return qs
+        return qs.order_by("-criada_em", "-id")
 
     @staticmethod
     def contar_nao_lidas(utilizador):

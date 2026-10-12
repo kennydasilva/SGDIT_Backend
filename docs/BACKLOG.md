@@ -255,6 +255,19 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - Visto em capturas: Dashboard e Minhas Denúncias do cidadão, e a landing. **As áreas do agente, Admin e Super Admin não foram vistas com os ícones novos.** `tsc`: 12 erros, todos anteriores.
   - **Notado, não corrigido:** o Dashboard do cidadão mostra "0 denúncias" quando o pedido à API falha, em vez de um erro (aconteceu numa captura tirada enquanto o servidor reiniciava; os dados estavam intactos).
 
+- **Cores unificadas em toda a aplicação: só o azul do sistema e branco** (pedido do utilizador: "retirar essas cores estranhas… castanho, amarelo, ora outra cor… as paletas são esse azul e branco do sistema").
+  - Tema (`index.css`): todas as classes `blue-*` passam a derivar de `#1E40AF` (tons claros por mistura com branco), por isso botões, barra lateral, ligações e fundos claros usam exactamente o mesmo azul. Antes havia três azuis diferentes.
+  - As famílias fora da paleta (âmbar, laranja, verde, violeta, roxo, índigo) foram convertidas para tons do azul em 21 ficheiros; os vermelhos decorativos (etiquetas, ícones, avisos informativos, contador de notificações) passaram a azul ou cinzento.
+  - **Estados das denúncias distinguem-se pelo preenchimento, não pela cor:** contorno azul = à espera (Pendente); fundo azul claro = em curso (Validada, Enviada ao posto, Em verificação); azul cheio = concluída (Aprovada, Agente designado); cinzento = fechada sem seguimento (Rejeitada, Arquivada). O gráfico por estado dos relatórios usa a mesma lógica numa escala de azuis.
+  - **Vermelho ficou só em mensagens de erro e em acções de eliminar/desactivar** (decisão minha, para um erro não se confundir com informação) — a confirmar pelo utilizador.
+  - **Títulos principais das páginas em azul** (pedido a seguir). O texto corrente fica preto, como está (o utilizador confirmou).
+  - **Ficaram com várias cores, de propósito:** o mapa de cobertura das jurisdições (uma cor por posto, para se distinguirem quando se sobrepõem) e a via seleccionada para remover. A decidir se também mudam.
+  - Gráfico "Denúncias por estado": os rótulos sobre o gráfico saíam cortados; passou a legenda por baixo, com as contagens.
+  - Visto em capturas dos 4 perfis (14 ecrãs). `tsc`: 12 erros, todos anteriores.
+- **Jurisdições: uma só pesquisa** (o utilizador achou repetitivo): havia uma pesquisa para adicionar via/bairro e outra só para centrar o mapa num bairro. Ficou uma: clicar num bairro adiciona-o como zona, e cada bairro tem "ver no mapa" (centra sem adicionar) e "escolher vias". Visto em captura com o posto de Mavalane e a pesquisa "Albazine".
+- **Paginação de 10 em 10** (o utilizador: "a paginação ainda não está a funcionar, estou a ver toda a lista"): não era erro — o limite era 20 por página e nenhuma lista tinha mais de 20 registos, por isso os botões nem apareciam. As 10 páginas de listagem pedem agora 10 por página. Confirmado no browser em Minhas Denúncias (19 registos: página 1 com 10, "Seguinte" → página 2 com 9).
+- **Ordenação: do mais recente para o mais antigo em todas as listas** (pedido do utilizador). Administradores e agentes estavam do mais antigo para o mais recente; cidadãos ordenavam por uma data vazia nas contas antigas. As denúncias já estavam por data decrescente e ganharam desempate pelo número, para a ordem não variar entre páginas. Confirmado pela API em 6 listagens.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
