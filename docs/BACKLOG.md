@@ -233,6 +233,9 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - A pasta `leading/` (duas imagens de referência do utilizador, na raiz do backend) **não foi adicionada ao repositório**.
   - Visto em captura de ecrã no computador (Início). `tsc`: 12 erros, todos anteriores. **"Branco e azul em todo o sistema" ainda não foi aplicado às páginas internas** (têm fundos cinzentos e etiquetas de estado coloridas) — a decidir com o utilizador.
 
+- **Afinações da landing page pedidas pelo utilizador a seguir:** rodapé azul com texto branco; **todo o texto em azul** (o preto/cinzento "deixava o ecrã estranho" — a página fica só com branco e `#1E40AF`); o ícone de escudo com visto da "decisão de um agente" (parecia "de IA") passou a martelo; **a imagem da aplicação deixou de ser desenhada e passou a ser uma captura real do ecrã "Criar Denúncia"** (com o mapa de Maputo, sem nome nem dados de nenhum utilizador), numa moldura de janela.
+  - **Problema encontrado ao tirar as capturas: a área do cidadão não é utilizável num ecrã de telemóvel.** A 390 px de largura a barra lateral ocupa cerca de 2/3 do ecrã e o formulário de denúncia fica espremido numa coluna ilegível (`AppShell` tem a barra lateral fixa em `w-64`, sem versão recolhida). Afecta os 4 perfis. Por isso a landing não mostra nenhum telemóvel com a aplicação, e foi retirada a frase "no computador ou no telemóvel". **O título "a partir do telemóvel" continua lá e só é verdade para gravar o vídeo — a corrigir o `AppShell` (menu recolhível) ou a mudar o título; a decidir com o utilizador.**
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
