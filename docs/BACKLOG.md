@@ -270,6 +270,19 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
 
 - **"Denúncias Recentes" nos dashboards: só 3** (pedido do utilizador; mostrava até 20). Vale para o dashboard do cidadão e para as "Últimas denúncias validadas" do agente; o resto vê-se em "Ver todas". O total do cidadão passa a vir da contagem do servidor (antes era o número de linhas carregadas, que parava em 20). **Notado, não corrigido:** no mesmo ecrã o ranking mostra "11 denúncias" para o cidadão que tem 20 — o contador do ranking só começou a contar a 2026-09-04.
 
+## 2026-10-13
+
+### 🔄 Em progresso — implementado, aguarda validação do utilizador
+
+- **Redesenho da interface (frontend, ramo `redesenho-ui`)** — auditoria com as skills Impeccable e UI UX Pro Max, aprovada pelo utilizador ("aprovo tudo"), mais o pedido de rever todos os componentes com aspecto "padrão de IA" (formulários, bordas, tabelas, filtros).
+  - **Erros de verdade corrigidos:** o perfil do agente mostrava estatísticas fixas no código ("127 / 85% / 8 min") e um "Editar perfil" que só mostrava uma mensagem de sucesso sem guardar nada — agora é só de leitura (os dados do agente são do Admin do posto) e mostra as decisões reais; as contagens da lista de Denúncias do Super Admin contavam só a página carregada — agora vêm do resumo dos relatórios; rótulos em bruto (`CONTRAMAO`, `VALIDADA`) e quatro formatos de data — agora um só rótulo e um só formato (`utils/datas.ts`); "Cancelar" em Criar denúncia ia para uma rota que não existe.
+  - **Componentes partilhados novos** (`components/app/`): cabeçalho de página, faixa de contagens, badge de estado, estado vazio, esqueletos de carregamento, campo de formulário com ajuda/erro ligados, secção de formulário, dados só de leitura, pesquisa, filtro por segmentos, erro com "tentar novamente", destaque da tarefa do momento.
+  - **Painéis por tarefa:** Agente abre com "N denúncias à espera da sua decisão"; Admin com os acidentes por designar; Cidadão com "Criar denúncia" no topo; Super Admin com totais e denúncias por estado.
+  - **Criar denúncia em três passos** (tipo, veículo e prova, local e envio), com resumo antes de enviar; mesma validação e mesma chamada à API.
+  - **Em todas as páginas:** filtros colados à tabela, paginação, modais sem ícone em círculo e com botões à direita, botões de ícone com nome acessível, foco visível, selecção e setas dos selects na cor do sistema, caixas de texto com altura certa, contraste de texto secundário.
+  - **Landing page conforme as referências de `leading/`:** topo claro com capturas reais em moldura de portátil e telemóvel; saiu o bloco "04 / 03 / 01".
+  - Verificado no browser a 1440 px e 390 px (Chrome headless, contas de teste locais), `tsc` limpo, `vite build` passa, ESLint 91 → 79 erros (os que ficam já existiam). **Por verificar pelo utilizador:** aprovar/arquivar uma denúncia e designar um agente não foram executados, para não alterar dados.
+
 ## 2026-09-15
 
 ### ✅ Concluído (backend)
