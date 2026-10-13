@@ -31,7 +31,7 @@ from api.service.duplicados_service import DuplicadosService
 from api.helper.dataConvertion import formatar_data
 from api.helper.matricula import validar_matricula
 from api.pagination import PaginacaoPadrao
-from api.permissions.role_permissions import IsAdmin, IsAdminOrSuperAdmin, IsPTOrAdminOrSuperAdmin
+from api.permissions.role_permissions import IsAdmin, IsAdminOrSuperAdmin, IsPT, IsPTOrAdminOrSuperAdmin
 
 class DenunciaViewSet(ViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -462,6 +462,35 @@ class DenunciaViewSet(ViewSet):
             return Response({"error": str(e)}, status=400)
 
         return Response({"message": "Agente designado", "id": denuncia.id})
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["denuncia_id"],
+            properties={"denuncia_id": openapi.Schema(type=openapi.TYPE_INTEGER)},
+        )
+    )
+    @action(
+        detail=False, methods=["patch"],
+        url_path="pt/concluir-acidente",
+        permission_classes=[IsPT]
+    )
+    def concluir_acidente(self, request):
+        denuncia_id = request.data.get("denuncia_id")
+
+        if not denuncia_id:
+            return Response({"error": "denuncia_id é obrigatório"}, status=400)
+
+        try:
+            denuncia = DenunciaService.concluir_acidente(denuncia_id, request.user)
+        except Denuncia.DoesNotExist:
+            return Response({"error": "Acidente não encontrado"}, status=404)
+        except PermissionError as e:
+            return Response({"error": str(e)}, status=403)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
+
+        return Response({"message": "Acidente concluído", "id": denuncia.id})
 
     @staticmethod
     def _distancia(a, b):

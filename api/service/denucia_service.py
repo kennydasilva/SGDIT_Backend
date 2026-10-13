@@ -224,6 +224,45 @@ class DenunciaService:
         )
 
     @staticmethod
+    def concluir_acidente(denuncia_id, utilizador):
+        """
+        O agente designado dá o acidente por concluído depois de ter
+        estado no local. Fecha também os outros reportes do mesmo acidente.
+
+        Só o agente que foi designado o pode concluir, e só enquanto o
+        acidente estiver com agente (EM_ATENDIMENTO).
+        """
+        denuncia = Denuncia.objects.select_related("pt").get(
+            id=denuncia_id,
+            tipo_infracao=Denuncia.tipoInfracao.ACIDENTE
+        )
+
+        if not denuncia.pt_id or denuncia.pt.utilizador_id != utilizador.id:
+            raise PermissionError("Só o agente designado pode concluir este acidente")
+
+        if denuncia.estado == Denuncia.Estado.CONCLUIDA:
+            raise ValueError("Este acidente já foi concluído")
+
+        if denuncia.estado != Denuncia.Estado.EM_ATENDIMENTO:
+            raise ValueError("Este acidente não está atribuído a um agente")
+
+        agora = timezone.now()
+        denuncia.estado = Denuncia.Estado.CONCLUIDA
+        denuncia.decidido_em = agora
+        denuncia.save()
+
+        NotificacaoService.acidente_concluido(denuncia)
+
+        # Os outros reportes do mesmo acidente seguem o principal.
+        for rel in denuncia.relacionadas.filter(estado=Denuncia.Estado.EM_ATENDIMENTO):
+            rel.estado = Denuncia.Estado.CONCLUIDA
+            rel.decidido_em = agora
+            rel.save()
+            NotificacaoService.estado_alterado(rel)
+
+        return denuncia
+
+    @staticmethod
     def designar_pt_acidente(denuncia_id, pt_id, admin_id):
         """
         O Admin do posto responsável escolhe qual agente vai ao local do
@@ -238,6 +277,9 @@ class DenunciaService:
             admin_responsavel_id=admin_id,
             tipo_infracao=Denuncia.tipoInfracao.ACIDENTE
         )
+
+        if denuncia.estado == Denuncia.Estado.CONCLUIDA:
+            raise ValueError("Este acidente já foi concluído")
 
         try:
             pt = PT.objects.get(id=pt_id, admin_id=admin_id)

@@ -215,7 +215,8 @@ class RelatorioService:
             "reportes_juntados": acidentes.filter(denuncia_principal__isnull=False).count(),
             "sem_posto": principais.filter(admin_responsavel__isnull=True).count(),
             "a_aguardar_agente": principais.filter(estado=Denuncia.Estado.ENCAMINHADA).count(),
-            "com_agente": principais.filter(pt__isnull=False).count(),
+            "com_agente": principais.filter(estado=Denuncia.Estado.EM_ATENDIMENTO).count(),
+            "concluidos": principais.filter(estado=Denuncia.Estado.CONCLUIDA).count(),
             "tempo_medio_ate_designar_min": round(media.total_seconds() / 60, 1) if media else None,
         }
 

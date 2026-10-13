@@ -14,6 +14,9 @@ class Denuncia(models.Model):
         # fila de validação do PT: vai directo ao Admin do posto da zona.
         ENCAMINHADA = "ENCAMINHADA", "Encaminhada ao posto"
         EM_ATENDIMENTO = "EM_ATENDIMENTO", "Agente designado"
+        # O agente designado esteve no local e deu o acidente por tratado:
+        # sem este estado o acidente ficava "com agente" para sempre.
+        CONCLUIDA = "CONCLUIDA", "Concluída"
         # Mesmo vídeo de outra denúncia, declarado noutra jurisdição: não
         # herda o estado da outra, fica à espera de um agente a verificar.
         DUVIDOSA = "DUVIDOSA", "Duvidosa"

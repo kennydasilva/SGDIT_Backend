@@ -27,6 +27,7 @@ MENSAGEM_ESTADO_CIDADAO = {
     "ARQUIVADA": "A denúncia foi arquivada.",
     "ENCAMINHADA": "O acidente foi enviado ao posto policial responsável pela zona.",
     "EM_ATENDIMENTO": "Foi designado um agente para o local do acidente.",
+    "CONCLUIDA": "O agente designado esteve no local e deu o acidente por concluído.",
     # O cidadão não é informado da suspeita (mesmo vídeo noutra
     # jurisdição), só de que há uma verificação por fazer.
     "DUVIDOSA": "A denúncia precisa de uma verificação adicional por um agente de trânsito antes de avançar.",
@@ -242,6 +243,20 @@ class NotificacaoService:
             "(ficheiro danificado ou ilegível). Se possível, crie uma nova denúncia com outro vídeo.",
             denuncia,
         )
+
+    @staticmethod
+    def acidente_concluido(denuncia):
+        """Admin do posto: o agente concluiu o acidente. Cidadão: estado."""
+        admin = denuncia.admin_responsavel
+        if admin:
+            NotificacaoService.notificar(
+                [admin.utilizador],
+                Notificacao.Tipo.ESTADO_ALTERADO,
+                f"Acidente #{denuncia.id} concluído",
+                f"O agente designado deu por concluído o acidente em {denuncia.localizacao or 'local não especificado'}.",
+                denuncia,
+            )
+        NotificacaoService.estado_alterado(denuncia)
 
     @staticmethod
     def agente_designado(denuncia):
