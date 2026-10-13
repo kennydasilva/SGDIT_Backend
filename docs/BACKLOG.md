@@ -280,7 +280,7 @@ Legenda: ✅ concluído · 🔄 em progresso · ⏳ por fazer
   - **Painéis por tarefa:** Agente abre com "N denúncias à espera da sua decisão"; Admin com os acidentes por designar; Cidadão com "Criar denúncia" no topo; Super Admin com totais e denúncias por estado.
   - **Criar denúncia em três passos** (tipo, veículo e prova, local e envio), com resumo antes de enviar; mesma validação e mesma chamada à API.
   - **Em todas as páginas:** filtros colados à tabela, paginação, modais sem ícone em círculo e com botões à direita, botões de ícone com nome acessível, foco visível, selecção e setas dos selects na cor do sistema, caixas de texto com altura certa, contraste de texto secundário.
-  - **Landing page conforme as referências de `leading/`:** topo claro com capturas reais em moldura de portátil e telemóvel; saiu o bloco "04 / 03 / 01".
+  - **Landing page: sem alterações.** Uma versão nova (topo claro, capturas em moldura de portátil e telemóvel) foi feita e **rejeitada pelo utilizador** no mesmo dia ("parece algo padrão gerado por IA, a anterior estava melhor"); a página inicial voltou ao desenho anterior.
   - Verificado no browser a 1440 px e 390 px (Chrome headless, contas de teste locais), `tsc` limpo, `vite build` passa, ESLint 91 → 79 erros (os que ficam já existiam). **Por verificar pelo utilizador:** aprovar/arquivar uma denúncia e designar um agente não foram executados, para não alterar dados.
 
 ## 2026-09-15
