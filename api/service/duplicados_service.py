@@ -17,7 +17,9 @@ from api.model.evidencia import Evidencia
 #  3. Cidadãos diferentes a denunciar a mesma infração: a nova fica ligada
 #     à primeira ("relacionada"), não é recusada.
 #  4. Acidentes: vários reportes a menos de 300 m e 1 hora são o mesmo
-#     acidente - juntam-se ao primeiro (um só SMS ao Admin).
+#     acidente - juntam-se ao primeiro (um só SMS ao Admin). Já concluído
+#     pelo agente, o reporte junta-se na mesma e herda a conclusão, como as
+#     outras infrações herdam a decisão do agente (2026-10-19).
 RAIO_METROS = 300
 JANELA_ACIDENTE = timedelta(hours=1)
 JANELA_RELACIONADA = timedelta(hours=24)
@@ -113,7 +115,12 @@ class DuplicadosService:
         ).exclude(cidadao_id=cidadao_id)
 
         if tipo_infracao == Denuncia.tipoInfracao.ACIDENTE:
-            candidatas = candidatas.filter(data_registo__gte=timezone.now() - JANELA_ACIDENTE)
+            candidatas = Denuncia.objects.filter(
+                tipo_infracao=tipo_infracao,
+                estado__in=ESTADOS_ABERTOS + [Denuncia.Estado.CONCLUIDA],
+                denuncia_principal__isnull=True,
+                data_registo__gte=timezone.now() - JANELA_ACIDENTE,
+            ).exclude(cidadao_id=cidadao_id)
         else:
             if not matricula:
                 return None

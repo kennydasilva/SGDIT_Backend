@@ -77,8 +77,13 @@ class NotificacaoService:
         principal_id = denuncia.denuncia_principal_id
 
         if principal_id and eh_acidente:
-            detalhe = ("Este acidente já tinha sido reportado por outra pessoa; o seu reporte foi juntado ao existente"
-                       + (" e já vai um agente a caminho." if denuncia.estado == Denuncia.Estado.EM_ATENDIMENTO else "."))
+            detalhe = "Este acidente já tinha sido reportado por outra pessoa; o seu reporte foi juntado ao existente"
+            if denuncia.estado == Denuncia.Estado.EM_ATENDIMENTO:
+                detalhe += " e já vai um agente a caminho."
+            elif denuncia.estado == Denuncia.Estado.CONCLUIDA:
+                detalhe += ". O agente designado já esteve no local e deu o acidente por concluído."
+            else:
+                detalhe += "."
         elif principal_id:
             detalhe = ("Outro cidadão já tinha denunciado esta infração; a sua denúncia foi ligada à dele como "
                        "testemunha e reforça o processo. O vídeo vai ser analisado automaticamente.")

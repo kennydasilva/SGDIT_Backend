@@ -92,20 +92,25 @@ class DenunciaService:
 
         # Mesma infração/acidente já denunciado por outro cidadão: liga à
         # primeira. Um acidente junta-se ao existente e herda o posto, o
-        # estado e o agente já designado.
+        # estado e o agente já designado - também se já foi concluído (o
+        # agente não volta ao local, nem o Admin recebe novo alerta).
         principal = DuplicadosService.encontrar_principal(
             cidadao.id, tipo_infracao, matricula, latitude, longitude
         )
         pt = None
+        decidido_em = None
         if principal and tipo_infracao == Denuncia.tipoInfracao.ACIDENTE:
             admin_responsavel = principal.admin_responsavel
             estado = principal.estado
             pt = principal.pt
+            if estado == Denuncia.Estado.CONCLUIDA:
+                decidido_em = timezone.now()
 
         denuncia = Denuncia.objects.create(
             estado=estado,
             denuncia_principal=principal,
             pt=pt,
+            decidido_em=decidido_em,
             cidadao=cidadao,
             matricula=matricula,
             descricao=descricao,
