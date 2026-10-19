@@ -306,18 +306,22 @@ class DenunciaViewSet(ViewSet):
         request_body=DenunciaUpdateSerializer
     )
     @action(detail=False, methods=["patch"], url_path="pt/actualizar", 
-     parser_classes=[JSONParser, MultiPartParser])
+     parser_classes=[JSONParser, MultiPartParser], permission_classes=[IsPT])
     def actualizar_estado(self, request, data=None):
 
         denuncia_id = int(request.data.get("denuncia_id"))
         estado = request.data.get("estado")
         codigo_legal = request.data.get("codigo_legal")
         descricao_pt = request.data.get("descricao_pt")
-        pt_id = int(request.data.get("pt_id"))
+        # A decisão fica sempre em nome de quem a toma, não do pt_id enviado.
+        pt_id = request.user.id
 
-       
-
-        denuncia = DenunciaService.actualizar_estado_PT(denuncia_id, estado, codigo_legal, descricao_pt, pt_id)
+        try:
+            denuncia = DenunciaService.actualizar_estado_PT(denuncia_id, estado, codigo_legal, descricao_pt, pt_id)
+        except Denuncia.DoesNotExist:
+            return Response({"error": "Denúncia não encontrada"}, status=404)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=400)
 
         return Response(denuncia.id, status=status.HTTP_200_OK)
 

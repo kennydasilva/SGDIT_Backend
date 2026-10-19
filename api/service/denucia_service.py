@@ -16,6 +16,13 @@ from .duplicados_service import DuplicadosService
 # 4. Actualizar detalhes de um denuncia
 # 5. Apagar um denuncia
 
+# Estados que só o fluxo do acidente pode atribuir.
+ESTADOS_FLUXO_ACIDENTE = [
+    Denuncia.Estado.ENCAMINHADA,
+    Denuncia.Estado.EM_ATENDIMENTO,
+    Denuncia.Estado.CONCLUIDA,
+]
+
 class DenunciaService:
 
     @staticmethod
@@ -136,6 +143,12 @@ class DenunciaService:
     def actualizar_estado_PT(denuncia_id, estado, codigo_legal, descricao_pt, pt_id):
 
         denuncia = Denuncia.objects.get(id=denuncia_id)
+
+        # O fluxo do acidente (designar agente, concluir) tem endpoints
+        # próprios, com as suas regras; aqui não pode ser contornado.
+        if denuncia.tipo_infracao == Denuncia.tipoInfracao.ACIDENTE or estado in ESTADOS_FLUXO_ACIDENTE:
+            raise ValueError("Acidentes são tratados pela designação e conclusão do agente")
+
         # Uma denúncia DUVIDOSA entra na fila logo ao ser ligada, podendo
         # ser decidida antes de a análise automática terminar.
         analise=ResultadoAnaliseService.obter_por_denuncia(denuncia_id=denuncia.id)
@@ -232,10 +245,13 @@ class DenunciaService:
         Só o agente que foi designado o pode concluir, e só enquanto o
         acidente estiver com agente (EM_ATENDIMENTO).
         """
-        denuncia = Denuncia.objects.select_related("pt").get(
+        denuncia = Denuncia.objects.select_related("pt", "denuncia_principal__pt").get(
             id=denuncia_id,
             tipo_infracao=Denuncia.tipoInfracao.ACIDENTE
         )
+        # O agente vê também os reportes juntados; concluir um deles
+        # conclui o acidente (o principal), não só esse reporte.
+        denuncia = denuncia.denuncia_principal or denuncia
 
         if not denuncia.pt_id or denuncia.pt.utilizador_id != utilizador.id:
             raise PermissionError("Só o agente designado pode concluir este acidente")

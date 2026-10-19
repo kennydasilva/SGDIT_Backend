@@ -1,7 +1,7 @@
 from datetime import datetime, time, timedelta
 
 from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, Q
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
 
 from api.model.denuncia import Denuncia
@@ -15,6 +15,13 @@ MESES_MAXIMO_GRAFICO = 24
 SEM_RESPOSTA = [Denuncia.Estado.PENDENTE, Denuncia.Estado.ENCAMINHADA]
 
 # Decisões tomadas por um agente (a negativa do agente grava ARQUIVADA).
+# Momento da resposta: num acidente é a designação do agente (concluir
+# depois volta a gravar a linha e mexe em atualizado_em); no resto, a
+# última alteração.
+TEMPO_RESPOSTA = ExpressionWrapper(
+    Coalesce("designado_em", "atualizado_em") - F("data_registo"), output_field=DurationField()
+)
+
 ESTADOS_DECISAO_AGENTE = [Denuncia.Estado.APROVADA, Denuncia.Estado.ARQUIVADA, Denuncia.Estado.REJEITADA]
 
 
@@ -105,7 +112,7 @@ class RelatorioService:
 
         tempo_medio = (
             qs.exclude(estado__in=SEM_RESPOSTA)
-            .annotate(tempo=F("atualizado_em") - F("data_registo"))
+            .annotate(tempo=TEMPO_RESPOSTA)
             .aggregate(media=Avg("tempo"))["media"]
         )
 
@@ -149,7 +156,6 @@ class RelatorioService:
 
     @staticmethod
     def _por_posto(qs):
-        tempo = ExpressionWrapper(F("atualizado_em") - F("data_registo"), output_field=DurationField())
         linhas = (
             qs.values("admin_responsavel_id", "admin_responsavel__posto")
             .annotate(
@@ -157,7 +163,7 @@ class RelatorioService:
                 sem_resposta=Count("id", filter=Q(estado__in=SEM_RESPOSTA)),
                 aprovadas=Count("id", filter=Q(estado=Denuncia.Estado.APROVADA)),
                 acidentes=Count("id", filter=Q(tipo_infracao=Denuncia.tipoInfracao.ACIDENTE)),
-                tempo_medio=Avg(tempo, filter=~Q(estado__in=SEM_RESPOSTA)),
+                tempo_medio=Avg(TEMPO_RESPOSTA, filter=~Q(estado__in=SEM_RESPOSTA)),
             )
             .order_by("-total")
         )

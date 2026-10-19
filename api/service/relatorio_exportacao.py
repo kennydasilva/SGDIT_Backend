@@ -105,6 +105,7 @@ def _seccoes_resumo(resumo):
             ["Fora de qualquer jurisdição", a["sem_posto"]],
             ["À espera de agente", a["a_aguardar_agente"]],
             ["Com agente designado", a["com_agente"]],
+            ["Concluídos pelo agente", a["concluidos"]],
             ["Tempo médio até designar agente", _fmt(a["tempo_medio_ate_designar_min"], " min")],
         ]),
         ("Qualidade das denúncias", ["Indicador", "Valor"], [
